@@ -2,40 +2,36 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Story Sacrifice</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div id="game-container">
-
-        <!-- 🎮 Welcome Screen -->
-        <section id="welcome-screen" class="screen active">
+        <!-- Welcome/Login Screen -->
+        <div id="welcome-screen" class="screen active">
             <h1>Story Sacrifice</h1>
             <p>Join with your friends. Create stories. Sacrifice the weakest!</p>
 
-            <!-- Game Creation -->
             <div id="game-creation">
                 <div class="input-group">
-                    <input type="text" id="player-name" placeholder="Enter your name" />
+                    <input type="text" id="player-name" placeholder="Enter your name">
                     <button id="create-btn">Create Game</button>
                 </div>
 
                 <div class="divider">OR</div>
 
-                <!-- Join Game -->
                 <div id="join-existing">
                     <div class="input-group">
-                        <input type="text" id="game-code-input" placeholder="Enter game code" />
+                        <input type="text" id="game-code-input" placeholder="Enter game code">
                         <button id="join-btn">Join Game</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Game Info -->
-            <div id="game-info" class="hidden">
+            <div id="game-info" style="display: none;">
                 <p id="game-code-display"></p>
                 <div id="share-buttons">
                     <button id="copy-link">Copy Link</button>
@@ -44,68 +40,64 @@
                 <div id="qr-code"></div>
             </div>
 
-            <!-- Player List -->
-            <div id="player-list" class="hidden">
+            <div id="player-list" style="display: none;">
                 <h2>Players</h2>
                 <ul id="players"></ul>
             </div>
 
-            <!-- Host Controls -->
-            <div id="host-controls" class="hidden">
+            <div id="host-controls" style="display: none;">
                 <button id="start-btn">Start Game</button>
             </div>
-        </section>
+        </div>
 
-        <!-- 📖 Story Screen -->
-        <section id="story-screen" class="screen">
+        <!-- Story Screen -->
+        <div id="story-screen" class="screen">
             <h2>The Story</h2>
-            <div id="story-content"></div>
-            <div id="story-timer">Time left: <span id="story-time">20</span>s</div>
-        </section>
+            <div id="story-content"></div> <!-- Added this container -->
+            <div id="story-timer">Time left: <span id="story-time">20</span>s</div> <!-- Fixed timer text -->
+        </div>
 
-        <!-- ✍️ Submission Screen -->
-        <section id="submit-screen" class="screen">
+        <!-- Submission Screen -->
+        <div id="submit-screen" class="screen">
             <h2>Your Plan</h2>
             <p id="action-prompt" class="prompt"></p>
             <textarea id="action-input" placeholder="Describe how you'd use the item..." rows="4"></textarea>
             <button id="submit-action">Submit</button>
             <div id="submit-timer">Time left: <span id="submit-time">60</span>s</div>
             <div id="submission-status"></div>
-        </section>
+        </div>
 
-        <!-- 🗳️ Voting Screen -->
-        <section id="vote-screen" class="screen">
+        <!-- Voting Screen -->
+        <div id="vote-screen" class="screen">
             <h2>Time to Vote</h2>
-            <div id="voting-content"></div>
+            <div id="voting-content"></div> <!-- Added this container -->
             <div id="vote-timer">Time left: <span id="vote-time">45</span>s</div>
             <div id="vote-status"></div>
-        </section>
+        </div>
 
-        <!-- ⚔️ Results Screen -->
-        <section id="result-screen" class="screen">
+        <!-- Results Screen -->
+        <div id="result-screen" class="screen">
             <h2>Sacrifice Result</h2>
-            <div id="result-content"></div>
-            <div id="result-timer">Next round in: <span id="result-time">15</span>s</div>
-        </section>
+            <div id="result-content"></div> <!-- Added this container -->
+            <div id="result-timer">Next round in: <span id="result-time">15</span>s</div> <!-- Fixed timer text -->
+        </div>
 
-        <!-- 🏆 Winner Screen -->
-        <section id="winner-screen" class="screen">
+        <!-- Winner Screen -->
+        <div id="winner-screen" class="screen">
             <h2>Game Over</h2>
-            <div id="winner-content"></div>
+            <div id="winner-content"></div> <!-- Added this container -->
             <button id="play-again">Play Again</button>
-        </section>
+        </div>
 
-        <!-- 💀 Loser Screen -->
-        <section id="loser-screen" class="screen">
+        <!-- Loser Screen (Added) -->
+        <div id="loser-screen" class="screen">
             <h2>Game Over</h2>
-            <div id="loser-content"></div>
+            <div id="loser-content"></div> <!-- Added this container -->
             <button id="spectate-btn">Spectate</button>
             <button id="leave-btn">Leave Game</button>
-        </section>
-
+        </div>
     </div>
 
-    <!-- Scripts -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="client.js"></script>
 </body>
