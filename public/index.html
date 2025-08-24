@@ -53,10 +53,8 @@
         <!-- Story Screen -->
         <div id="story-screen" class="screen">
             <h2>The Story</h2>
-            <div id="story-scenario" class="story-content"></div>
-            <div id="story-crisis" class="story-content"></div>
-            <div id="story-item" class="story-item"></div>
-            <div id="story-timer">Next phase in: <span id="story-time">10</span>s</div>
+            <div id="story-content"></div> <!-- Added this container -->
+            <div id="story-timer">Time left: <span id="story-time">20</span>s</div> <!-- Fixed timer text -->
         </div>
 
         <!-- Submission Screen -->
@@ -72,8 +70,7 @@
         <!-- Voting Screen -->
         <div id="vote-screen" class="screen">
             <h2>Time to Vote</h2>
-            <p>Choose the weakest plan:</p>
-            <div id="voting-submissions-list" class="submissions-container"></div>
+            <div id="voting-content"></div> <!-- Added this container -->
             <div id="vote-timer">Time left: <span id="vote-time">45</span>s</div>
             <div id="vote-status"></div>
         </div>
@@ -81,22 +78,23 @@
         <!-- Results Screen -->
         <div id="result-screen" class="screen">
             <h2>Sacrifice Result</h2>
-            <div id="sacrifice-message" class="result-content"></div>
-            <div id="result-timer">Next round in: <span id="result-time">10</span>s</div>
+            <div id="result-content"></div> <!-- Added this container -->
+            <div id="result-timer">Next round in: <span id="result-time">15</span>s</div> <!-- Fixed timer text -->
         </div>
 
         <!-- Winner Screen -->
         <div id="winner-screen" class="screen">
             <h2>Game Over</h2>
-            <div id="winner-message" class="result-content"></div>
+            <div id="winner-content"></div> <!-- Added this container -->
             <button id="play-again">Play Again</button>
         </div>
 
-        <!-- Resolution Screen -->
-        <div id="resolution-screen" class="screen">
-            <h2>Story Resolution</h2>
-            <div id="resolution-content" class="result-content"></div>
-            <button id="next-round-btn">Continue</button>
+        <!-- Loser Screen (Added) -->
+        <div id="loser-screen" class="screen">
+            <h2>Game Over</h2>
+            <div id="loser-content"></div> <!-- Added this container -->
+            <button id="spectate-btn">Spectate</button>
+            <button id="leave-btn">Leave Game</button>
         </div>
     </div>
 

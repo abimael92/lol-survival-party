@@ -124,12 +124,28 @@ button:disabled {
     font-size: 0.8em;
 }
 
-.story-content {
-    margin-bottom: 1.5rem;
+/* Story elements */
+.story-intro {
+    font-style: italic;
+    margin-bottom: 20px;
     padding: 15px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     line-height: 1.6;
+}
+
+.story-scenario {
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.story-crisis {
+    font-weight: bold;
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(233, 69, 96, 0.2);
+    border-radius: 8px;
 }
 
 .story-item {
@@ -138,6 +154,9 @@ button:disabled {
     text-align: center;
     font-size: 1.2em;
     margin: 1rem 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
 }
 
 .prompt {
@@ -157,27 +176,51 @@ button:disabled {
     margin-bottom: 1rem;
 }
 
+/* Voting elements */
+.voting-prompt {
+    text-align: center;
+    font-size: 1.1em;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(233, 69, 96, 0.2);
+    border-radius: 8px;
+    font-weight: bold;
+}
+
 .submissions-container {
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     margin: 1rem 0;
 }
 
 .submission-item {
-    padding: 12px;
+    padding: 15px;
     margin: 10px 0;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
 }
 
 .submission-item:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
 }
 
 .submission-item.voted {
-    border: 2px solid #e94560;
+    border-color: #e94560;
+    background: rgba(233, 69, 96, 0.1);
+}
+
+.submission-text {
+    font-style: italic;
+    margin-bottom: 5px;
+}
+
+.submission-details {
+    font-size: 0.9em;
+    color: #ccc;
 }
 
 .item-used {
@@ -189,54 +232,63 @@ button:disabled {
 
 .vote-count {
     font-size: 0.9em;
-    color: #ccc;
+    color: #e94560;
     margin-top: 5px;
+    font-weight: bold;
 }
 
-.result-content {
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    font-style: italic;
+/* Result elements */
+.elimination-story {
     text-align: center;
-    line-height: 1.6;
-    margin: 1.5rem 0;
+    padding: 20px;
 }
 
-.resolution-text {
+.elimination-reason {
     font-style: italic;
-    margin-top: 1rem;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
-}
-
-.ending-text {
-    font-size: 1.1em;
-    margin: 1.5rem 0;
-    line-height: 1.6;
-}
-
-.story-recap {
-    margin-top: 2rem;
+    margin: 15px 0;
     padding: 15px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
+}
+
+.story-continuation {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+/* Final screen elements */
+.final-chapter {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.final-story {
+    font-size: 1.1em;
+    line-height: 1.6;
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.full-recap {
+    margin-top: 30px;
+}
+
+.full-recap pre {
+    white-space: pre-wrap;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 8px;
     max-height: 300px;
     overflow-y: auto;
+    line-height: 1.4;
 }
 
-.story-recap h4 {
-    margin-top: 0;
-    color: #e94560;
-}
-
-.story-recap pre {
-    white-space: pre-wrap;
-    font-family: inherit;
-    margin: 0;
-}
-
+/* Timers and status */
 #timer, #story-timer, #vote-timer, #result-timer {
     text-align: center;
     font-size: 1.2rem;
@@ -252,6 +304,7 @@ button:disabled {
     font-style: italic;
 }
 
+/* Share buttons */
 #share-buttons {
     display: flex;
     gap: 10px;
@@ -282,5 +335,15 @@ button:disabled {
     
     #share-buttons {
         flex-direction: column;
+    }
+    
+    .submission-item {
+        padding: 12px;
+    }
+    
+    .story-scenario,
+    .story-crisis {
+        font-size: 1.1em;
+        padding: 12px;
     }
 }
