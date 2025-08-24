@@ -163,6 +163,24 @@ function initGame() {
     if (gameCodeFromUrl) {
         document.getElementById('game-code-input').value = gameCodeFromUrl;
     }
+
+    // Set up voting functionality
+    setupVoting();
+}
+
+// Set up voting functionality
+function setupVoting() {
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.submission-item')) {
+            const submissionItem = e.target.closest('.submission-item');
+            const playerId = submissionItem.dataset.playerId;
+
+            // Only allow voting if we're on the vote screen and haven't voted yet
+            if (screens.vote.classList.contains('active') && !document.querySelector('.submission-item.voted')) {
+                socket.emit('submit-vote', playerId);
+            }
+        }
+    });
 }
 
 // Socket event handlers
@@ -255,7 +273,7 @@ socket.on('phase-change', (phase) => {
     }
 });
 
-// NEW EVENT HANDLER: Story resolution showing all player actions
+// Story resolution showing all player actions and the silly resolution
 socket.on('story-resolution', (data) => {
     let resolutionHTML = `<div class="resolution-title">How the crisis was resolved:</div>`;
 
@@ -267,6 +285,9 @@ socket.on('story-resolution', (data) => {
             </div>
         `;
     }
+
+    // Add the silly resolution from the server
+    resolutionHTML += `<div class="silly-resolution">${data.resolution}</div>`;
 
     document.getElementById('story-content').innerHTML = resolutionHTML;
     showScreen('story');
@@ -345,7 +366,7 @@ socket.on('game-winner', (data) => {
             <h2>THE SAGA CONCLUDES</h2>
             <div class="final-story">${data.story}</div>
         </div>
-        <div class='full-recap'>
+        <div class="full-recap">
             <h3>COMPLETE STORY</h3>
             <pre>${data.recap}</pre>
         </div>
@@ -361,7 +382,7 @@ socket.on('game-draw', (data) => {
             <h2>AN UNEXPECTED CONCLUSION</h2>
             <div class="final-story">${data.message}</div>
         </div>
-        <div class='full-recap'>
+        <div class="full-recap">
             <h3>COMPLETE STORY</h3>
             <pre>${data.recap}</pre>
         </div>
