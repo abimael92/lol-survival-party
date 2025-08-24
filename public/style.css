@@ -1,3 +1,6 @@
+/* ===================
+   Global Styles
+=================== */
 body {
     font-family: 'Arial', sans-serif;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -8,9 +11,9 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-}
-
-#game-container {
+  }
+  
+  #game-container {
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border-radius: 15px;
@@ -18,44 +21,57 @@ body {
     width: 90%;
     max-width: 600px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-.screen {
+  }
+  
+  /* ===================
+     Screen Visibility
+  =================== */
+  .screen {
     display: none;
-}
-
-.screen.active {
+  }
+  
+  .screen.active {
     display: block;
     animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
+  }
+  
+  .hidden {
+    display: none !important;
+  }
+  
+  @keyframes fadeIn {
     from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-h1, h2 {
+    to   { opacity: 1; }
+  }
+  
+  /* ===================
+     Typography
+  =================== */
+  h1, h2 {
     text-align: center;
     color: #e94560;
     margin-top: 0;
-}
-
-.input-group {
+  }
+  
+  /* ===================
+     Forms & Buttons
+  =================== */
+  .input-group {
     display: flex;
     margin-bottom: 1rem;
     gap: 10px;
-}
-
-.input-group input {
+  }
+  
+  .input-group input {
     flex-grow: 1;
     padding: 10px;
     border: none;
     border-radius: 5px;
     background: rgba(255, 255, 255, 0.1);
     color: white;
-}
-
-button {
+  }
+  
+  button {
     background-color: #e94560;
     color: white;
     border: none;
@@ -63,24 +79,25 @@ button {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s;
-}
-
-button:hover {
+  }
+  
+  button:hover {
     background-color: #b83651;
-}
-
-button:disabled {
+  }
+  
+  button:disabled {
     background-color: #555;
     cursor: not-allowed;
-}
-
-.divider {
+  }
+  
+  /* Divider */
+  .divider {
     text-align: center;
     margin: 1.5rem 0;
     position: relative;
-}
-
-.divider:before {
+  }
+  
+  .divider:before {
     content: "";
     position: absolute;
     top: 50%;
@@ -89,66 +106,71 @@ button:disabled {
     height: 1px;
     background: rgba(255, 255, 255, 0.2);
     z-index: 1;
-}
-
-.divider {
+  }
+  
+  .divider {
     background: rgba(26, 26, 46, 0.9);
     padding: 0 10px;
     display: inline-block;
     z-index: 2;
     position: relative;
-}
-
-#player-list {
+  }
+  
+  /* ===================
+     Player List
+  =================== */
+  #player-list {
     margin: 1.5rem 0;
-}
-
-#players {
+  }
+  
+  #players {
     list-style: none;
     padding: 0;
-}
-
-#players li {
+  }
+  
+  #players li {
     padding: 8px;
     margin: 5px 0;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 5px;
     display: flex;
     justify-content: space-between;
-}
-
-#players li .host-badge {
+  }
+  
+  #players li .host-badge {
     background: #e94560;
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 0.8em;
-}
-
-/* Story elements */
-.story-intro {
+  }
+  
+  /* ===================
+     Story Elements
+  =================== */
+  .story-intro {
     font-style: italic;
     margin-bottom: 20px;
     padding: 15px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     line-height: 1.6;
-}
-
-.story-scenario {
+  }
+  
+  .story-scenario {
     font-size: 1.2em;
     margin-bottom: 15px;
     line-height: 1.5;
-}
-
-.story-crisis {
+  }
+  
+  .story-crisis {
     font-weight: bold;
     margin: 20px 0;
     padding: 15px;
     background: rgba(233, 69, 96, 0.2);
     border-radius: 8px;
-}
-
-.story-item {
+  }
+  
+  .story-item {
     font-weight: bold;
     color: #e94560;
     text-align: center;
@@ -157,37 +179,18 @@ button:disabled {
     padding: 10px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 5px;
-}
-
-.prompt {
+  }
+  
+  /* ===================
+     Submission
+  =================== */
+  .prompt {
     font-size: 1.1em;
     margin-bottom: 1.5rem;
     text-align: center;
-}
-
-.resolution-title {
-    font-size: 1.5em;
-    font-weight: bold;
-    margin-bottom: 20px;
-    text-align: center;
-    color: #ff6b6b;
-}
-
-.player-resolution {
-    margin: 15px 0;
-    padding: 15px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    border-left: 4px solid #4ecdc4;
-}
-
-.story-resolution {
-    padding: 20px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-#action-input {
+  }
+  
+  #action-input {
     width: 100%;
     padding: 12px;
     border: none;
@@ -196,10 +199,18 @@ button:disabled {
     color: white;
     resize: vertical;
     margin-bottom: 1rem;
-}
-
-/* Voting elements */
-.voting-prompt {
+  }
+  
+  #submission-status {
+    text-align: center;
+    margin-top: 1rem;
+    font-style: italic;
+  }
+  
+  /* ===================
+     Voting
+  =================== */
+  .voting-prompt {
     text-align: center;
     font-size: 1.1em;
     margin-bottom: 20px;
@@ -207,15 +218,15 @@ button:disabled {
     background: rgba(233, 69, 96, 0.2);
     border-radius: 8px;
     font-weight: bold;
-}
-
-.submissions-container {
+  }
+  
+  .submissions-container {
     max-height: 400px;
     overflow-y: auto;
     margin: 1rem 0;
-}
-
-.submission-item {
+  }
+  
+  .submission-item {
     padding: 15px;
     margin: 10px 0;
     background: rgba(255, 255, 255, 0.1);
@@ -223,84 +234,94 @@ button:disabled {
     cursor: pointer;
     transition: all 0.3s ease;
     border: 2px solid transparent;
-}
-
-.submission-item:hover {
+  }
+  
+  .submission-item:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: translateY(-2px);
-}
-
-.submission-item.voted {
+  }
+  
+  .submission-item.voted {
     border-color: #e94560;
     background: rgba(233, 69, 96, 0.1);
-}
-
-.submission-text {
+  }
+  
+  .submission-text {
     font-style: italic;
     margin-bottom: 5px;
-}
-
-.submission-details {
+  }
+  
+  .submission-details {
     font-size: 0.9em;
     color: #ccc;
-}
-
-.item-used {
+  }
+  
+  .item-used {
     font-style: italic;
     color: #e94560;
     margin: 5px 0;
     font-size: 0.9em;
-}
-
-.vote-count {
+  }
+  
+  .vote-count {
     font-size: 0.9em;
     color: #e94560;
     margin-top: 5px;
     font-weight: bold;
-}
-
-/* Result elements */
-.elimination-story {
+  }
+  
+  #vote-status {
+    text-align: center;
+    margin-top: 1rem;
+    font-style: italic;
+  }
+  
+  /* ===================
+     Results
+  =================== */
+  .elimination-story {
     text-align: center;
     padding: 20px;
-}
-
-.elimination-reason {
+  }
+  
+  .elimination-reason {
     font-style: italic;
     margin: 15px 0;
     padding: 15px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
-}
-
-.story-continuation {
+  }
+  
+  .story-continuation {
     margin-top: 15px;
     padding: 15px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     font-weight: bold;
-}
-
-/* Final screen elements */
-.final-chapter {
+  }
+  
+  /* ===================
+     Final / Winner
+  =================== */
+  .final-chapter {
     text-align: center;
     margin-bottom: 30px;
-}
-
-.final-story {
+  }
+  
+  .final-story {
     font-size: 1.1em;
     line-height: 1.6;
     margin: 20px 0;
     padding: 20px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
-}
-
-.full-recap {
+  }
+  
+  .full-recap {
     margin-top: 30px;
-}
-
-.full-recap pre {
+  }
+  
+  .full-recap pre {
     white-space: pre-wrap;
     background: rgba(0, 0, 0, 0.2);
     padding: 20px;
@@ -308,64 +329,65 @@ button:disabled {
     max-height: 300px;
     overflow-y: auto;
     line-height: 1.4;
-}
-
-/* Timers and status */
-#timer, #story-timer, #vote-timer, #result-timer {
+  }
+  
+  /* ===================
+     Timers
+  =================== */
+  #timer, #story-timer, #vote-timer, #result-timer, #submit-timer {
     text-align: center;
     font-size: 1.2rem;
     margin-top: 1rem;
     padding: 10px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 5px;
-}
-
-#submission-status, #vote-status {
-    text-align: center;
-    margin-top: 1rem;
-    font-style: italic;
-}
-
-/* Share buttons */
-#share-buttons {
+  }
+  
+  /* ===================
+     Share Buttons
+  =================== */
+  #share-buttons {
     display: flex;
     gap: 10px;
     justify-content: center;
     margin: 1rem 0;
-}
-
-#qr-code {
+  }
+  
+  #qr-code {
     text-align: center;
     margin: 1rem 0;
-}
-
-#qr-code img {
+  }
+  
+  #qr-code img {
     border-radius: 10px;
     border: 2px solid #e94560;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 600px) {
+  }
+  
+  /* ===================
+     Mobile
+  =================== */
+  @media (max-width: 600px) {
     #game-container {
-        padding: 1rem;
-        width: 95%;
+      padding: 1rem;
+      width: 95%;
     }
     
     .input-group {
-        flex-direction: column;
+      flex-direction: column;
     }
     
     #share-buttons {
-        flex-direction: column;
+      flex-direction: column;
     }
     
     .submission-item {
-        padding: 12px;
+      padding: 12px;
     }
     
     .story-scenario,
     .story-crisis {
-        font-size: 1.1em;
-        padding: 12px;
+      font-size: 1.1em;
+      padding: 12px;
     }
-}
+  }
+  
