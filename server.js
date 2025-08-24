@@ -17,19 +17,19 @@ const games = new Map();
 // Predefined stories
 const stories = [
     {
-        scenario: "You're all trapped in a vampire's mansion. He's allergic to silly things. A rubber chicken slides out of a secret passage.",
-        item: "rubber chicken",
-        crisis: "The vampire is getting hungry! How do you use the RUBBER CHICKEN to buy more time?"
+        scenario: "You're all trapped in a vampire's mansion. He's allergic to silly things. Various items slide out of a secret passage.",
+        crisis: "The vampire is getting hungry! How do you use your item to buy more time?",
+        items: ["rubber chicken", "whoopee cushion", "giant foam finger", "kazoo", "silly putty", "joy buzzer", "rainbow wig", "oversized sunglasses"]
     },
     {
-        scenario: "You're being chased by a zombie horde through a shopping mall. You find a room full of tennis rackets.",
-        item: "tennis racket",
-        crisis: "The zombies are closing in! How do you use the TENNIS RACKET to survive?"
+        scenario: "You're being chased by a zombie horde through a shopping mall. You find a room full of unusual items.",
+        crisis: "The zombies are closing in! How do you use your item to survive?",
+        items: ["tennis racket", "roll of duct tape", "whoopee cushion", "rubber chicken", "super soaker", "fidget spinner", "yo-yo", "whoopee cushion"]
     },
     {
-        scenario: "You're on a spaceship with a hostile alien. The only unusual item in the room is a whoopee cushion.",
-        item: "whoopee cushion",
-        crisis: "The alien is about to break through the door! How do you use the WHOOPEE CUSHION to stop it?"
+        scenario: "You're on a spaceship with a hostile alien. The only unusual items in the room are various novelty items.",
+        crisis: "The alien is about to break through the door! How do you use your item to stop it?",
+        items: ["whoopee cushion", "rubber chicken", "joy buzzer", "fake mustache", "rainbow wig", "giant foam finger", "kazoo", "silly string"]
     }
 ];
 
@@ -41,10 +41,11 @@ function getRandomStory() {
 // Generate funny death message
 function generateDeathMessage(playerName, submission, item) {
     const deaths = [
-        `${playerName} tried to ${submission}. It was so embarrassing that the vampires died laughing... and then ${playerName} tripped and turned into a coat rack.`,
-        `${playerName}'s idea to ${submission} backfired spectacularly. They're now serving as a warning to others.`,
-        `When ${playerName} attempted to ${submission}, it confused everyone so much that reality itself shifted and erased them from existence.`,
-        `${playerName}'s plan to ${submission} was so bad the universe awarded them a trophy for 'Worst Idea of the Century' and then disintegrated them.`
+        `${playerName} tried to use the ${item} to ${submission}. It was so embarrassing that the vampires died laughing... and then ${playerName} tripped and turned into a coat rack.`,
+        `${playerName}'s idea to use the ${item} to ${submission} backfired spectacularly. They're now serving as a warning to others.`,
+        `When ${playerName} attempted to use the ${item} to ${submission}, it confused everyone so much that reality itself shifted and erased them from existence.`,
+        `${playerName}'s plan to use the ${item} to ${submission} was so bad the universe awarded them a trophy for 'Worst Idea of the Century' and then disintegrated them.`,
+        `The ${item} seemed like a good idea to ${playerName}, but their attempt to ${submission} resulted in their immediate and hilarious demise.`
     ];
     return deaths[Math.floor(Math.random() * deaths.length)];
 }
@@ -72,7 +73,8 @@ function createGame(hostId) {
         submissions: {},
         votes: {},
         phase: 'waiting',
-        timer: null
+        timer: null,
+        availableItems: []
     };
     games.set(gameCode, game);
     return game;
@@ -100,7 +102,28 @@ function countVotes(game) {
 // Start game function
 function startGame(game) {
     game.phase = 'story';
+
+    // Get a random story
     game.currentStory = getRandomStory();
+
+    // Reset and shuffle available items for this round
+    game.availableItems = [...game.currentStory.items];
+    shuffleArray(game.availableItems); // Shuffle the items
+
+    // Assign a unique item to each alive player
+    game.players.forEach(player => {
+        if (player.alive) {
+            if (game.availableItems.length > 0) {
+                player.currentItem = game.availableItems.pop();
+            } else {
+                // If we run out of items, assign a random one
+                player.currentItem = game.currentStory.items[
+                    Math.floor(Math.random() * game.currentStory.items.length)
+                ];
+            }
+        }
+    });
+
     game.submissions = {};
     game.votes = {};
 
@@ -109,7 +132,17 @@ function startGame(game) {
         player.voted = false;
     });
 
-    io.to(game.id).emit('new-story', game.currentStory);
+    // Send the story to each player with their specific item
+    game.players.forEach(player => {
+        if (player.alive) {
+            // Send to each player individually with their specific item
+            io.to(player.id).emit('new-story', {
+                scenario: game.currentStory.scenario,
+                crisis: game.currentStory.crisis,
+                playerItem: player.currentItem
+            });
+        }
+    });
 
     // After time for reading, move to submission phase
     setTimeout(() => {
@@ -120,7 +153,16 @@ function startGame(game) {
         game.timer = setTimeout(() => {
             startVoting(game);
         }, 60000); // 60 seconds for submissions
-    }, 10000); // 10 seconds for reading
+    }, 20000); // 20 seconds for reading
+}
+
+// Helper function to shuffle array (Fisher-Yates algorithm)
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }
 
 function startVoting(game) {
@@ -134,7 +176,8 @@ function startVoting(game) {
         const player = game.players.find(p => p.id === playerId);
         if (player) {
             submissionsForVoting[playerId] = {
-                text: game.submissions[playerId],
+                text: game.submissions[playerId].text,
+                item: game.submissions[playerId].item,
                 playerName: player.name
             };
         }
@@ -178,8 +221,8 @@ function endVoting(game) {
 
         const deathMessage = generateDeathMessage(
             sacrificedPlayer.name,
-            game.submissions[sacrificedPlayer.id],
-            game.currentStory.item
+            game.submissions[sacrificedPlayer.id].text, // Get the text property
+            game.submissions[sacrificedPlayer.id].item   // Get the item property
         );
 
         game.phase = 'result';
@@ -251,10 +294,20 @@ io.on('connection', (socket) => {
     socket.on('submit-action', (data) => {
         const game = findGameBySocket(socket.id);
         if (game && game.phase === 'submit') {
-            game.submissions[socket.id] = data.action;
+            const player = game.players.find(p => p.id === socket.id);
+            if (player) {
+                // Store both the action and the item used
+                game.submissions[socket.id] = {
+                    text: data.action,
+                    item: player.currentItem
+                };
+            }
 
             // Notify all players about the submission
-            io.to(game.id).emit('player-submitted', { playerId: socket.id });
+            io.to(game.id).emit('player-submitted', {
+                playerId: socket.id,
+                submittedCount: Object.keys(game.submissions).length
+            });
 
             // Check if all alive players have submitted
             const alivePlayers = game.players.filter(p => p.alive);
