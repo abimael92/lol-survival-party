@@ -1,0 +1,19 @@
+{
+    "name": "lol-survival-party",
+    "version": "1.0.0",
+    "description": "A funny scary adventure game with friends",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "author": "Abimael",
+    "license": "MIT",
+    "devDependencies": {
+        "nodemon": "^3.1.10"
+    },
+    "dependencies": {
+        "express": "^5.1.0",
+        "socket.io": "^4.8.1"
+    }
+}
