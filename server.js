@@ -50,6 +50,47 @@ function generateDeathMessage(playerName, submission, item) {
     return deaths[Math.floor(Math.random() * deaths.length)];
 }
 
+// Generate story resolution after sacrifice
+function generateStoryResolution(game, sacrificedPlayer) {
+    const resolutions = [
+        `Despite ${sacrificedPlayer.name}'s unfortunate demise, the remaining survivors pressed on.`,
+        `After the tragic loss of ${sacrificedPlayer.name}, the group found renewed determination.`,
+        `The sacrifice of ${sacrificedPlayer.name} somehow made the situation both worse and more hilarious.`,
+        `With ${sacrificedPlayer.name} out of the picture, the remaining players suddenly discovered they had better ideas.`,
+        `The group solemnly agreed that ${sacrificedPlayer.name}'s sacrifice would not be in vain, mostly because it was really funny to watch.`
+    ];
+    return resolutions[Math.floor(Math.random() * resolutions.length)];
+}
+
+// Generate final story ending
+function generateFinalStoryEnding(game, winner) {
+    const story = game.currentStory;
+    const endings = [
+        `In a stunning turn of events, ${winner.name} used their ${winner.currentItem} in the most absurd way possible, which somehow worked perfectly. The crisis was averted, but everyone questioned the laws of physics afterward.`,
+        `${winner.name} emerged victorious by doing absolutely nothing while everyone else eliminated themselves through sheer incompetence. The ${story.items[0]} turned out to be completely irrelevant.`,
+        `Through a series of increasingly ridiculous events that defied all logic, ${winner.name} somehow managed to ${game.submissions[winner.id]?.text || "do something inexplicable"} with their ${winner.currentItem}, saving the day in the most anticlimactic way possible.`,
+        `In the end, ${winner.name} won not by being the most clever, but by being the last one standing after everyone else succumbed to their own terrible ideas. The original problem solved itself through sheer neglect.`,
+        `${winner.name} triumphed by accidentally discovering that the real solution was friendship all along. Then they used the ${winner.currentItem} to hit the actual threat, which worked surprisingly well.`
+    ];
+    return endings[Math.floor(Math.random() * endings.length)];
+}
+
+// Generate full story recap
+function generateFullStoryRecap(game) {
+    let recap = `FULL STORY RECAP:\n\n`;
+    recap += `Scenario: ${game.currentStory.scenario}\n\n`;
+
+    recap += `The journey:\n`;
+    game.players.forEach((player, index) => {
+        if (game.submissions[player.id]) {
+            recap += `- ${player.name} used ${player.currentItem} to ${game.submissions[player.id].text}\n`;
+        }
+    });
+
+    recap += `\nIn the end, only one survivor remained...\n`;
+    return recap;
+}
+
 // Generate funny disconnect messages
 function generateDisconnectMessage(playerName) {
     const messages = [
@@ -99,6 +140,15 @@ function countVotes(game) {
     return counts;
 }
 
+// Helper function to shuffle array (Fisher-Yates algorithm)
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
 // Start game function
 function startGame(game) {
     game.phase = 'story';
@@ -108,7 +158,7 @@ function startGame(game) {
 
     // Reset and shuffle available items for this round
     game.availableItems = [...game.currentStory.items];
-    shuffleArray(game.availableItems); // Shuffle the items
+    shuffleArray(game.availableItems);
 
     // Assign a unique item to each alive player
     game.players.forEach(player => {
@@ -116,7 +166,6 @@ function startGame(game) {
             if (game.availableItems.length > 0) {
                 player.currentItem = game.availableItems.pop();
             } else {
-                // If we run out of items, assign a random one
                 player.currentItem = game.currentStory.items[
                     Math.floor(Math.random() * game.currentStory.items.length)
                 ];
@@ -135,7 +184,6 @@ function startGame(game) {
     // Send the story to each player with their specific item
     game.players.forEach(player => {
         if (player.alive) {
-            // Send to each player individually with their specific item
             io.to(player.id).emit('new-story', {
                 scenario: game.currentStory.scenario,
                 crisis: game.currentStory.crisis,
@@ -152,17 +200,8 @@ function startGame(game) {
         // Set timer for submissions
         game.timer = setTimeout(() => {
             startVoting(game);
-        }, 60000); // 60 seconds for submissions
-    }, 20000); // 20 seconds for reading
-}
-
-// Helper function to shuffle array (Fisher-Yates algorithm)
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
+        }, 60000);
+    }, 20000);
 }
 
 function startVoting(game) {
@@ -170,11 +209,11 @@ function startVoting(game) {
     game.phase = 'vote';
     io.to(game.id).emit('phase-change', 'vote');
 
-    // Prepare submissions for voting (anonymize them)
+    // Prepare submissions for voting (include the item)
     const submissionsForVoting = {};
-    Object.keys(game.submissions).forEach((playerId, index) => {
+    Object.keys(game.submissions).forEach((playerId) => {
         const player = game.players.find(p => p.id === playerId);
-        if (player) {
+        if (player && game.submissions[playerId]) {
             submissionsForVoting[playerId] = {
                 text: game.submissions[playerId].text,
                 item: game.submissions[playerId].item,
@@ -188,7 +227,7 @@ function startVoting(game) {
     // Set timer for voting
     game.timer = setTimeout(() => {
         endVoting(game);
-    }, 45000); // 45 seconds for voting
+    }, 45000);
 }
 
 function endVoting(game) {
@@ -216,18 +255,24 @@ function endVoting(game) {
     }
 
     const sacrificedPlayer = game.players.find(p => p.id === sacrificedPlayerId);
-    if (sacrificedPlayer) {
+    if (sacrificedPlayer && game.submissions[sacrificedPlayer.id]) {
         sacrificedPlayer.alive = false;
 
         const deathMessage = generateDeathMessage(
             sacrificedPlayer.name,
-            game.submissions[sacrificedPlayer.id].text, // Get the text property
-            game.submissions[sacrificedPlayer.id].item   // Get the item property
+            game.submissions[sacrificedPlayer.id].text,
+            game.submissions[sacrificedPlayer.id].item
         );
+
+        const resolutionMessage = generateStoryResolution(game, sacrificedPlayer);
 
         game.phase = 'result';
         io.to(game.id).emit('phase-change', 'result');
-        io.to(game.id).emit('player-sacrificed', { player: sacrificedPlayer, message: deathMessage });
+        io.to(game.id).emit('player-sacrificed', {
+            player: sacrificedPlayer,
+            message: deathMessage,
+            resolution: resolutionMessage
+        });
 
         // Check if game should continue
         game.timer = setTimeout(() => {
@@ -235,13 +280,24 @@ function endVoting(game) {
             if (remainingPlayers.length > 1) {
                 startGame(game);
             } else if (remainingPlayers.length === 1) {
+                const winner = remainingPlayers[0];
+                const finalEnding = generateFinalStoryEnding(game, winner);
+                const fullRecap = generateFullStoryRecap(game);
+
                 game.phase = 'winner';
-                io.to(game.id).emit('game-winner', remainingPlayers[0]);
+                io.to(game.id).emit('game-winner', {
+                    winner: winner,
+                    ending: finalEnding,
+                    recap: fullRecap
+                });
             } else {
                 game.phase = 'draw';
-                io.to(game.id).emit('game-draw');
+                io.to(game.id).emit('game-draw', {
+                    message: "Somehow, everyone managed to eliminate themselves. The problem remains unsolved, but at least it was entertaining!",
+                    recap: generateFullStoryRecap(game)
+                });
             }
-        }, 10000); // Show result for 10 seconds
+        }, 15000);
     }
 }
 
@@ -305,7 +361,6 @@ io.on('connection', (socket) => {
 
             // Notify all players about the submission
             io.to(game.id).emit('player-submitted', {
-                playerId: socket.id,
                 submittedCount: Object.keys(game.submissions).length
             });
 
