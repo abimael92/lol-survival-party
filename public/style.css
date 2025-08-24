@@ -203,6 +203,40 @@ button:disabled {
     margin: 1.5rem 0;
 }
 
+.resolution-text {
+    font-style: italic;
+    margin-top: 1rem;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}
+
+.ending-text {
+    font-size: 1.1em;
+    margin: 1.5rem 0;
+    line-height: 1.6;
+}
+
+.story-recap {
+    margin-top: 2rem;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.story-recap h4 {
+    margin-top: 0;
+    color: #e94560;
+}
+
+.story-recap pre {
+    white-space: pre-wrap;
+    font-family: inherit;
+    margin: 0;
+}
+
 #timer, #story-timer, #vote-timer, #result-timer {
     text-align: center;
     font-size: 1.2rem;
