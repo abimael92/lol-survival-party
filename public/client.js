@@ -245,12 +245,35 @@ socket.on('phase-change', (phase) => {
         startTimer(60, 'submit-time', () => {
             document.getElementById('submission-status').textContent = 'Time\'s up!';
         });
+    } else if (phase === 'story-resolution') {
+        // This is handled by the story-resolution event
     } else if (phase === 'vote') {
         showScreen('vote');
         startTimer(45, 'vote-time', () => {
             document.getElementById('vote-status').textContent = 'Time\'s up!';
         });
     }
+});
+
+// NEW EVENT HANDLER: Story resolution showing all player actions
+socket.on('story-resolution', (data) => {
+    let resolutionHTML = `<div class="resolution-title">How the crisis was resolved:</div>`;
+
+    for (const [playerId, submission] of Object.entries(data.submissions)) {
+        resolutionHTML += `
+            <div class="player-resolution">
+                <strong>${submission.playerName}</strong> used their <em>${submission.item}</em> to 
+                ${submission.text}
+            </div>
+        `;
+    }
+
+    document.getElementById('story-content').innerHTML = resolutionHTML;
+    showScreen('story');
+
+    startTimer(15, 'story-time', () => {
+        // Timer completed, server will handle next phase
+    });
 });
 
 socket.on('player-submitted', (data) => {
@@ -322,7 +345,7 @@ socket.on('game-winner', (data) => {
             <h2>THE SAGA CONCLUDES</h2>
             <div class="final-story">${data.story}</div>
         </div>
-        <div class="full-recap">
+        <div class='full-recap'>
             <h3>COMPLETE STORY</h3>
             <pre>${data.recap}</pre>
         </div>
@@ -338,7 +361,7 @@ socket.on('game-draw', (data) => {
             <h2>AN UNEXPECTED CONCLUSION</h2>
             <div class="final-story">${data.message}</div>
         </div>
-        <div class="full-recap">
+        <div class='full-recap'>
             <h3>COMPLETE STORY</h3>
             <pre>${data.recap}</pre>
         </div>
