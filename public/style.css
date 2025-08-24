@@ -180,6 +180,13 @@ button:disabled {
     border: 2px solid #e94560;
 }
 
+.item-used {
+    font-style: italic;
+    color: #e94560;
+    margin: 5px 0;
+    font-size: 0.9em;
+}
+
 .vote-count {
     font-size: 0.9em;
     color: #ccc;
