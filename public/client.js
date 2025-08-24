@@ -222,14 +222,14 @@ socket.on('game-state-update', (gameState) => {
     });
 });
 
-socket.on('new-story', (story) => {
-    document.getElementById('story-scenario').textContent = story.scenario;
-    document.getElementById('story-crisis').textContent = story.crisis;
-    document.getElementById('story-item').textContent = `Item: ${story.item}`;
-    document.getElementById('action-prompt').textContent = story.crisis;
+socket.on('new-story', (storyData) => {
+    document.getElementById('story-scenario').textContent = storyData.scenario;
+    document.getElementById('story-crisis').textContent = storyData.crisis;
+    document.getElementById('story-item').textContent = `Your Item: ${storyData.playerItem}`;
+    document.getElementById('action-prompt').textContent = `${storyData.crisis} You have a ${storyData.playerItem}.`;
 
     showScreen('story');
-    startTimer(10, 'story-time', () => {
+    startTimer(15, 'story-time', () => {
         // Timer completed, server will handle phase change
     });
 });
@@ -256,6 +256,7 @@ socket.on('player-submitted', (data) => {
     document.getElementById('submission-status').textContent = `${data.submittedCount || 'Some'} players have submitted...`;
 });
 
+//  submissions display to show which item was used
 socket.on('submissions-to-vote-on', (submissions) => {
     const submissionsList = document.getElementById('voting-submissions-list');
     submissionsList.innerHTML = '';
@@ -268,6 +269,7 @@ socket.on('submissions-to-vote-on', (submissions) => {
             div.dataset.playerId = playerId;
             div.innerHTML = `
                 <p><strong>${submissionData.text}</strong></p>
+                <div class="item-used">Used: ${submissionData.item}</div>
                 <div class="vote-count">Votes: 0</div>
             `;
 
