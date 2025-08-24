@@ -10,50 +10,93 @@
 
 <body>
     <div id="game-container">
+        <!-- Welcome/Login Screen -->
         <div id="welcome-screen" class="screen active">
             <h1>Story Sacrifice</h1>
             <p>Join with your friends. Create stories. Sacrifice the weakest!</p>
-            <div id="join-form">
-                <input type="text" id="player-name" placeholder="Enter your name">
-                <button id="join-btn">Join Game</button>
+
+            <div id="game-creation">
+                <div class="input-group">
+                    <input type="text" id="player-name" placeholder="Enter your name">
+                    <button id="create-btn">Create Game</button>
+                </div>
+
+                <div class="divider">OR</div>
+
+                <div id="join-existing">
+                    <div class="input-group">
+                        <input type="text" id="game-code-input" placeholder="Enter game code">
+                        <button id="join-btn">Join Game</button>
+                    </div>
+                </div>
             </div>
-            <div id="player-list">
+
+            <div id="game-info" style="display: none;">
+                <p id="game-code-display"></p>
+                <div id="share-buttons">
+                    <button id="copy-link">Copy Link</button>
+                    <button id="share-qr">Show QR Code</button>
+                </div>
+                <div id="qr-code"></div>
+            </div>
+
+            <div id="player-list" style="display: none;">
                 <h2>Players</h2>
                 <ul id="players"></ul>
             </div>
-            <p id="game-code">Share this link with friends: <span id="game-link"></span></p>
+
+            <div id="host-controls" style="display: none;">
+                <button id="start-btn">Start Game</button>
+            </div>
         </div>
 
+        <!-- Story Screen -->
         <div id="story-screen" class="screen">
             <h2>The Story</h2>
-            <div id="story-scenario"></div>
-            <div id="story-crisis"></div>
-            <div id="story-item"></div>
+            <div id="story-scenario" class="story-content"></div>
+            <div id="story-crisis" class="story-content"></div>
+            <div id="story-item" class="story-item"></div>
+            <div id="story-timer">Next phase in: <span id="story-time">10</span>s</div>
         </div>
 
+        <!-- Submission Screen -->
         <div id="submit-screen" class="screen">
             <h2>Your Plan</h2>
-            <p id="action-prompt"></p>
-            <textarea id="action-input" placeholder="Describe how you'd use the item..."></textarea>
+            <p id="action-prompt" class="prompt"></p>
+            <textarea id="action-input" placeholder="Describe how you'd use the item..." rows="4"></textarea>
             <button id="submit-action">Submit</button>
-            <div id="timer">Time left: <span id="time">60</span>s</div>
+            <div id="submit-timer">Time left: <span id="submit-time">60</span>s</div>
+            <div id="submission-status"></div>
         </div>
 
+        <!-- Voting Screen -->
         <div id="vote-screen" class="screen">
             <h2>Time to Vote</h2>
             <p>Choose the weakest plan:</p>
-            <div id="submissions-list"></div>
+            <div id="voting-submissions-list" class="submissions-container"></div>
+            <div id="vote-timer">Time left: <span id="vote-time">45</span>s</div>
+            <div id="vote-status"></div>
         </div>
 
+        <!-- Results Screen -->
         <div id="result-screen" class="screen">
             <h2>Sacrifice Result</h2>
-            <div id="sacrifice-message"></div>
+            <div id="sacrifice-message" class="result-content"></div>
+            <div id="result-timer">Next round in: <span id="result-time">10</span>s</div>
         </div>
 
+        <!-- Winner Screen -->
         <div id="winner-screen" class="screen">
             <h2>Game Over</h2>
-            <div id="winner-message"></div>
+            <div id="winner-message" class="result-content"></div>
             <button id="play-again">Play Again</button>
+        </div>
+
+        <!-- Resolution Screen -->
+        <div id="resolution-screen" class="screen">
+            <h2>Story Resolution</h2>
+            <div id="resolution-content" class="result-content"></div>
+            <button id="next-round-btn">Continue</button>
         </div>
     </div>
 

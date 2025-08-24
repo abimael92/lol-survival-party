@@ -3,7 +3,7 @@ body {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     color: #fff;
     margin: 0;
-    padding: 0;
+    padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -26,20 +26,27 @@ body {
 
 .screen.active {
     display: block;
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 h1, h2 {
     text-align: center;
     color: #e94560;
+    margin-top: 0;
 }
 
-#join-form {
+.input-group {
     display: flex;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     gap: 10px;
 }
 
-#player-name, #action-input {
+.input-group input {
     flex-grow: 1;
     padding: 10px;
     border: none;
@@ -62,6 +69,36 @@ button:hover {
     background-color: #b83651;
 }
 
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.divider {
+    text-align: center;
+    margin: 1.5rem 0;
+    position: relative;
+}
+
+.divider:before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    z-index: 1;
+}
+
+.divider {
+    background: rgba(26, 26, 46, 0.9);
+    padding: 0 10px;
+    display: inline-block;
+    z-index: 2;
+    position: relative;
+}
+
 #player-list {
     margin: 1.5rem 0;
 }
@@ -76,29 +113,58 @@ button:hover {
     margin: 5px 0;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
 }
 
-#story-scenario, #story-crisis {
+#players li .host-badge {
+    background: #e94560;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+}
+
+.story-content {
     margin-bottom: 1.5rem;
     padding: 15px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
+    line-height: 1.6;
+}
+
+.story-item {
+    font-weight: bold;
+    color: #e94560;
+    text-align: center;
+    font-size: 1.2em;
+    margin: 1rem 0;
+}
+
+.prompt {
+    font-size: 1.1em;
+    margin-bottom: 1.5rem;
+    text-align: center;
 }
 
 #action-input {
     width: 100%;
-    min-height: 100px;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    resize: vertical;
+    margin-bottom: 1rem;
+}
+
+.submissions-container {
+    max-height: 300px;
+    overflow-y: auto;
     margin: 1rem 0;
 }
 
-#timer {
-    text-align: center;
-    font-size: 1.2rem;
-    margin-top: 1rem;
-}
-
 .submission-item {
-    padding: 10px;
+    padding: 12px;
     margin: 10px 0;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 5px;
@@ -110,10 +176,70 @@ button:hover {
     background: rgba(255, 255, 255, 0.2);
 }
 
-#sacrifice-message, #winner-message {
-    padding: 15px;
+.submission-item.voted {
+    border: 2px solid #e94560;
+}
+
+.vote-count {
+    font-size: 0.9em;
+    color: #ccc;
+    margin-top: 5px;
+}
+
+.result-content {
+    padding: 20px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     font-style: italic;
     text-align: center;
+    line-height: 1.6;
+    margin: 1.5rem 0;
+}
+
+#timer, #story-timer, #vote-timer, #result-timer {
+    text-align: center;
+    font-size: 1.2rem;
+    margin-top: 1rem;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+}
+
+#submission-status, #vote-status {
+    text-align: center;
+    margin-top: 1rem;
+    font-style: italic;
+}
+
+#share-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+#qr-code {
+    text-align: center;
+    margin: 1rem 0;
+}
+
+#qr-code img {
+    border-radius: 10px;
+    border: 2px solid #e94560;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+    #game-container {
+        padding: 1rem;
+        width: 95%;
+    }
+    
+    .input-group {
+        flex-direction: column;
+    }
+    
+    #share-buttons {
+        flex-direction: column;
+    }
 }
