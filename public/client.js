@@ -10,8 +10,7 @@ const screens = {
     submit: document.getElementById('submit-screen'),
     vote: document.getElementById('vote-screen'),
     result: document.getElementById('result-screen'),
-    winner: document.getElementById('winner-screen'),
-    resolution: document.getElementById('resolution-screen')
+    winner: document.getElementById('winner-screen')
 };
 
 // Timer elements
@@ -129,14 +128,6 @@ function initGame() {
         });
     }
 
-    // Next round button
-    const nextRoundBtn = document.getElementById('next-round-btn');
-    if (nextRoundBtn) {
-        nextRoundBtn.addEventListener('click', () => {
-            // This would be handled by the server automatically after timer
-        });
-    }
-
     // Share buttons
     const copyLinkBtn = document.getElementById('copy-link');
     if (copyLinkBtn) {
@@ -223,13 +214,23 @@ socket.on('game-state-update', (gameState) => {
 });
 
 socket.on('new-story', (storyData) => {
-    document.getElementById('story-scenario').textContent = storyData.scenario;
-    document.getElementById('story-crisis').textContent = storyData.crisis;
-    document.getElementById('story-item').textContent = `Your Item: ${storyData.playerItem}`;
-    document.getElementById('action-prompt').textContent = `${storyData.crisis} You have a ${storyData.playerItem}.`;
+    let storyHTML = '';
 
+    // Show introduction only for first round
+    if (storyData.introduction) {
+        storyHTML += `<div class="story-intro">${storyData.introduction}</div>`;
+    }
+
+    // Add scenario and crisis
+    storyHTML += `
+        <div class="story-scenario">${storyData.scenario}</div>
+        <div class="story-crisis">${storyData.crisis}</div>
+        <div class="story-item">Your Item: <strong>${storyData.playerItem}</strong></div>
+    `;
+
+    document.getElementById('story-content').innerHTML = storyHTML;
     showScreen('story');
-    startTimer(15, 'story-time', () => {
+    startTimer(20, 'story-time', () => {
         // Timer completed, server will handle phase change
     });
 });
@@ -256,34 +257,26 @@ socket.on('player-submitted', (data) => {
     document.getElementById('submission-status').textContent = `${data.submittedCount || 'Some'} players have submitted...`;
 });
 
-//  submissions display to show which item was used
-socket.on('submissions-to-vote-on', (submissions) => {
-    const submissionsList = document.getElementById('voting-submissions-list');
-    submissionsList.innerHTML = '';
+socket.on('submissions-to-vote-on', (data) => {
+    let votingHTML = `<div class="voting-prompt">${data.prompt}</div>`;
 
-    for (const [playerId, submissionData] of Object.entries(submissions)) {
-        const player = currentGameState.players.find(p => p.id === playerId);
-        if (player) {
-            const div = document.createElement('div');
-            div.className = 'submission-item';
-            div.dataset.playerId = playerId;
-            div.innerHTML = `
-                <p><strong>${submissionData.text}</strong></p>
-                <div class="item-used">Used: ${submissionData.item}</div>
+    votingHTML += `<div class="submissions-list">`;
+    for (const [playerId, submission] of Object.entries(data.submissions)) {
+        votingHTML += `
+            <div class="submission-item" data-player-id="${playerId}">
+                <div class="submission-text">"${submission.text}"</div>
+                <div class="submission-details">- ${submission.playerName} using ${submission.item}</div>
                 <div class="vote-count">Votes: 0</div>
-            `;
-
-            div.addEventListener('click', () => {
-                socket.emit('submit-vote', playerId);
-                document.querySelectorAll('.submission-item').forEach(item => {
-                    item.classList.remove('voted');
-                });
-                div.classList.add('voted');
-            });
-
-            submissionsList.appendChild(div);
-        }
+            </div>
+        `;
     }
+    votingHTML += `</div>`;
+
+    document.getElementById('voting-content').innerHTML = votingHTML;
+    showScreen('vote');
+    startTimer(45, 'vote-time', () => {
+        document.getElementById('vote-status').textContent = 'Time\'s up!';
+    });
 });
 
 socket.on('vote-confirmed', (votedId) => {
@@ -308,38 +301,52 @@ socket.on('vote-update', (voteCounts) => {
 });
 
 socket.on('player-sacrificed', (data) => {
-    document.getElementById('sacrifice-message').innerHTML = `
-        <p>${data.message}</p>
-        <p class="resolution-text">${data.resolution}</p>
+    const resultHTML = `
+        <div class="elimination-story">
+            <h3>${data.player.name} has been left behind!</h3>
+            <div class="elimination-reason">${data.message}</div>
+            <div class="story-continuation">${data.continuation}</div>
+        </div>
     `;
+
+    document.getElementById('result-content').innerHTML = resultHTML;
     showScreen('result');
+    startTimer(15, 'result-time', () => {
+        // Timer completed, server will handle next phase
+    });
 });
 
-// game-winner event handler
 socket.on('game-winner', (data) => {
-    document.getElementById('winner-message').innerHTML = `
-        <h3>${data.winner.name} Wins!</h3>
-        <p class="ending-text">${data.ending}</p>
-        <div class="story-recap">
-            <h4>Story Recap</h4>
+    const winnerHTML = `
+        <div class="final-chapter">
+            <h2>THE SAGA CONCLUDES</h2>
+            <div class="final-story">${data.story}</div>
+        </div>
+        <div class="full-recap">
+            <h3>COMPLETE STORY</h3>
             <pre>${data.recap}</pre>
         </div>
     `;
+
+    document.getElementById('winner-content').innerHTML = winnerHTML;
     showScreen('winner');
 });
 
 socket.on('game-draw', (data) => {
-    document.getElementById('winner-message').innerHTML = `
-        <h3>It's a Draw!</h3>
-        <p class="ending-text">${data.message}</p>
-        <div class="story-recap">
-            <h4>Story Recap</h4>
+    const drawHTML = `
+        <div class="final-chapter">
+            <h2>AN UNEXPECTED CONCLUSION</h2>
+            <div class="final-story">${data.message}</div>
+        </div>
+        <div class="full-recap">
+            <h3>COMPLETE STORY</h3>
             <pre>${data.recap}</pre>
         </div>
     `;
+
+    document.getElementById('winner-content').innerHTML = drawHTML;
     showScreen('winner');
 });
-
 
 socket.on('player-disconnected', (data) => {
     const notification = document.createElement('div');
