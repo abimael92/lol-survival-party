@@ -17,17 +17,20 @@ const games = new Map();
 // Predefined stories
 const stories = [
     {
-        scenario: "You're all trapped in a vampire's mansion. He's allergic to silly things. Various items slide out of a secret passage.",
+        intro: "It was a perfectly normal day when {players} decided to go on an adventure together. Little did they know, their outing would take a bizarre turn...",
+        scenario: "You find yourselves trapped in a vampire's mansion! The vampire is allergic to silly things, and various items slide out of a secret passage.",
         crisis: "The vampire is getting hungry! How do you use your item to buy more time?",
         items: ["rubber chicken", "whoopee cushion", "giant foam finger", "kazoo", "silly putty", "joy buzzer", "rainbow wig", "oversized sunglasses"]
     },
     {
-        scenario: "You're being chased by a zombie horde through a shopping mall. You find a room full of unusual items.",
+        intro: "{players} were just minding their own business when suddenly, adventure found them!",
+        scenario: "You're being chased by a zombie horde through a shopping mall! You find a room full of unusual items.",
         crisis: "The zombies are closing in! How do you use your item to survive?",
         items: ["tennis racket", "roll of duct tape", "whoopee cushion", "rubber chicken", "super soaker", "fidget spinner", "yo-yo", "whoopee cushion"]
     },
     {
-        scenario: "You're on a spaceship with a hostile alien. The only unusual items in the room are various novelty items.",
+        intro: "What started as a normal day for {players} quickly spiraled into chaos...",
+        scenario: "You wake up on a spaceship with a hostile alien! The only unusual items in the room are various novelty items.",
         crisis: "The alien is about to break through the door! How do you use your item to stop it?",
         items: ["whoopee cushion", "rubber chicken", "joy buzzer", "fake mustache", "rainbow wig", "giant foam finger", "kazoo", "silly string"]
     }
@@ -38,56 +41,71 @@ function getRandomStory() {
     return stories[Math.floor(Math.random() * stories.length)];
 }
 
+// Generate player list string
+function generatePlayerList(players) {
+    const names = players.map(p => p.name);
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} and ${names[1]}`;
+    return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
+}
+
 // Generate funny death message
 function generateDeathMessage(playerName, submission, item) {
     const deaths = [
-        `${playerName} tried to use the ${item} to ${submission}. It was so embarrassing that the vampires died laughing... and then ${playerName} tripped and turned into a coat rack.`,
-        `${playerName}'s idea to use the ${item} to ${submission} backfired spectacularly. They're now serving as a warning to others.`,
-        `When ${playerName} attempted to use the ${item} to ${submission}, it confused everyone so much that reality itself shifted and erased them from existence.`,
-        `${playerName}'s plan to use the ${item} to ${submission} was so bad the universe awarded them a trophy for 'Worst Idea of the Century' and then disintegrated them.`,
-        `The ${item} seemed like a good idea to ${playerName}, but their attempt to ${submission} resulted in their immediate and hilarious demise.`
+        `${playerName} tried to use the ${item} to ${submission}. It was so embarrassing that everyone decided it was better to continue without them.`,
+        `${playerName}'s idea to ${submission} with the ${item} backfired spectacularly. The group voted unanimously to leave them behind.`,
+        `When ${playerName} attempted to ${submission}, it confused everyone so much that the group decided they were better off without that kind of "help."`,
+        `${playerName}'s plan to ${submission} was so bad the group decided some risks weren't worth taking. They were left behind for everyone's safety.`,
+        `The ${item} seemed like a good idea to ${playerName}, but their attempt to ${submission} resulted in the group making a quick unanimous decision to continue without them.`
     ];
     return deaths[Math.floor(Math.random() * deaths.length)];
 }
 
-// Generate story resolution after sacrifice
-function generateStoryResolution(game, sacrificedPlayer) {
-    const resolutions = [
-        `Despite ${sacrificedPlayer.name}'s unfortunate demise, the remaining survivors pressed on.`,
-        `After the tragic loss of ${sacrificedPlayer.name}, the group found renewed determination.`,
-        `The sacrifice of ${sacrificedPlayer.name} somehow made the situation both worse and more hilarious.`,
-        `With ${sacrificedPlayer.name} out of the picture, the remaining players suddenly discovered they had better ideas.`,
-        `The group solemnly agreed that ${sacrificedPlayer.name}'s sacrifice would not be in vain, mostly because it was really funny to watch.`
+// Generate story continuation
+function generateContinuationStory(remainingPlayers, sacrificedPlayer) {
+    const stories = [
+        `With ${sacrificedPlayer.name} now pursuing other opportunities, ${generatePlayerList(remainingPlayers)} pressed on with the mission.`,
+        `The group made the tough but necessary decision to continue without ${sacrificedPlayer.name}. ${generatePlayerList(remainingPlayers)} advanced to the next challenge.`,
+        `As ${sacrificedPlayer.name} became distracted by something shiny, ${generatePlayerList(remainingPlayers)} seized the opportunity to move forward.`,
+        `${generatePlayerList(remainingPlayers)} gave a respectful nod to ${sacrificedPlayer.name} before continuing the adventure without them.`
     ];
-    return resolutions[Math.floor(Math.random() * resolutions.length)];
+    return stories[Math.floor(Math.random() * stories.length)];
 }
 
 // Generate final story ending
 function generateFinalStoryEnding(game, winner) {
-    const story = game.currentStory;
-    const endings = [
-        `In a stunning turn of events, ${winner.name} used their ${winner.currentItem} in the most absurd way possible, which somehow worked perfectly. The crisis was averted, but everyone questioned the laws of physics afterward.`,
-        `${winner.name} emerged victorious by doing absolutely nothing while everyone else eliminated themselves through sheer incompetence. The ${story.items[0]} turned out to be completely irrelevant.`,
-        `Through a series of increasingly ridiculous events that defied all logic, ${winner.name} somehow managed to ${game.submissions[winner.id]?.text || "do something inexplicable"} with their ${winner.currentItem}, saving the day in the most anticlimactic way possible.`,
-        `In the end, ${winner.name} won not by being the most clever, but by being the last one standing after everyone else succumbed to their own terrible ideas. The original problem solved itself through sheer neglect.`,
-        `${winner.name} triumphed by accidentally discovering that the real solution was friendship all along. Then they used the ${winner.currentItem} to hit the actual threat, which worked surprisingly well.`
+    const stories = [
+        `After a series of increasingly absurd challenges, ${winner.name} emerged victorious! Their clever use of various items throughout the adventure proved that sometimes the weirdest ideas are the most effective.`,
+        `${winner.name} stood alone at the end, having outlasted everyone else through a combination of creativity and other people's terrible decisions. The adventure was complete!`,
+        `In the final moments, ${winner.name}'s persistence paid off. While others fell to their own ridiculous plans, ${winner.name} managed to navigate the chaos and emerge as the winner.`,
+        `Through luck, timing, and the strategic use of questionable items, ${winner.name} proved that surviving absurdity is its own form of victory.`
     ];
-    return endings[Math.floor(Math.random() * endings.length)];
+    return stories[Math.floor(Math.random() * stories.length)];
 }
 
 // Generate full story recap
 function generateFullStoryRecap(game) {
-    let recap = `FULL STORY RECAP:\n\n`;
-    recap += `Scenario: ${game.currentStory.scenario}\n\n`;
+    let recap = `COMPLETE ADVENTURE RECAP:\n\n`;
+    recap += `Our story began: ${game.storyIntroduction}\n\n`;
 
-    recap += `The journey:\n`;
-    game.players.forEach((player, index) => {
+    recap += `THE JOURNEY:\n`;
+    game.players.forEach((player) => {
         if (game.submissions[player.id]) {
-            recap += `- ${player.name} used ${player.currentItem} to ${game.submissions[player.id].text}\n`;
+            if (player.alive) {
+                recap += `- ${player.name} used ${player.currentItem} to ${game.submissions[player.id].text}\n`;
+            } else {
+                recap += `- ${player.name} used ${player.currentItem} to ${game.submissions[player.id].text} and was left behind\n`;
+            }
         }
     });
 
-    recap += `\nIn the end, only one survivor remained...\n`;
+    const winner = game.players.find(p => p.alive);
+    if (winner) {
+        recap += `\nFINAL OUTCOME: ${winner.name} emerged victorious!\n`;
+    } else {
+        recap += `\nEPILOGUE: Everyone was eliminated in this comedy of errors!\n`;
+    }
+
     return recap;
 }
 
@@ -111,11 +129,13 @@ function createGame(hostId) {
         host: hostId,
         players: [],
         currentStory: null,
+        storyIntroduction: "",
         submissions: {},
         votes: {},
         phase: 'waiting',
         timer: null,
-        availableItems: []
+        availableItems: [],
+        roundNumber: 0
     };
     games.set(gameCode, game);
     return game;
@@ -152,9 +172,14 @@ function shuffleArray(array) {
 // Start game function
 function startGame(game) {
     game.phase = 'story';
+    game.roundNumber++;
 
-    // Get a random story
-    game.currentStory = getRandomStory();
+    // Get a random story for first round
+    if (game.roundNumber === 1) {
+        const story = getRandomStory();
+        game.currentStory = story;
+        game.storyIntroduction = story.intro.replace('{players}', generatePlayerList(game.players));
+    }
 
     // Reset and shuffle available items for this round
     game.availableItems = [...game.currentStory.items];
@@ -185,9 +210,11 @@ function startGame(game) {
     game.players.forEach(player => {
         if (player.alive) {
             io.to(player.id).emit('new-story', {
+                introduction: game.roundNumber === 1 ? game.storyIntroduction : null,
                 scenario: game.currentStory.scenario,
                 crisis: game.currentStory.crisis,
-                playerItem: player.currentItem
+                playerItem: player.currentItem,
+                roundNumber: game.roundNumber
             });
         }
     });
@@ -209,7 +236,10 @@ function startVoting(game) {
     game.phase = 'vote';
     io.to(game.id).emit('phase-change', 'vote');
 
-    // Prepare submissions for voting (include the item)
+    // Prepare voting prompt
+    const votingPrompt = "All team members contributed... but let's be honest, some plans were better than others. Who should we leave behind for the team's survival?";
+
+    // Prepare submissions for voting
     const submissionsForVoting = {};
     Object.keys(game.submissions).forEach((playerId) => {
         const player = game.players.find(p => p.id === playerId);
@@ -222,7 +252,10 @@ function startVoting(game) {
         }
     });
 
-    io.to(game.id).emit('submissions-to-vote-on', submissionsForVoting);
+    io.to(game.id).emit('submissions-to-vote-on', {
+        prompt: votingPrompt,
+        submissions: submissionsForVoting
+    });
 
     // Set timer for voting
     game.timer = setTimeout(() => {
@@ -264,14 +297,18 @@ function endVoting(game) {
             game.submissions[sacrificedPlayer.id].item
         );
 
-        const resolutionMessage = generateStoryResolution(game, sacrificedPlayer);
+        const continuationStory = generateContinuationStory(
+            game.players.filter(p => p.alive),
+            sacrificedPlayer
+        );
 
         game.phase = 'result';
-        io.to(game.id).emit('phase-change', 'result');
+
+        // Send elimination result to all players
         io.to(game.id).emit('player-sacrificed', {
             player: sacrificedPlayer,
             message: deathMessage,
-            resolution: resolutionMessage
+            continuation: continuationStory
         });
 
         // Check if game should continue
@@ -281,20 +318,22 @@ function endVoting(game) {
                 startGame(game);
             } else if (remainingPlayers.length === 1) {
                 const winner = remainingPlayers[0];
-                const finalEnding = generateFinalStoryEnding(game, winner);
+                const finalStory = generateFinalStoryEnding(winner, game);
                 const fullRecap = generateFullStoryRecap(game);
 
                 game.phase = 'winner';
                 io.to(game.id).emit('game-winner', {
                     winner: winner,
-                    ending: finalEnding,
+                    story: finalStory,
                     recap: fullRecap
                 });
             } else {
                 game.phase = 'draw';
+                const fullRecap = generateFullStoryRecap(game);
+
                 io.to(game.id).emit('game-draw', {
-                    message: "Somehow, everyone managed to eliminate themselves. The problem remains unsolved, but at least it was entertaining!",
-                    recap: generateFullStoryRecap(game)
+                    message: "In a stunning turn of events, everyone managed to eliminate themselves!",
+                    recap: fullRecap
                 });
             }
         }, 15000);
