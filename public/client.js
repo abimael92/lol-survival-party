@@ -308,19 +308,38 @@ socket.on('vote-update', (voteCounts) => {
 });
 
 socket.on('player-sacrificed', (data) => {
-    document.getElementById('sacrifice-message').textContent = data.message;
+    document.getElementById('sacrifice-message').innerHTML = `
+        <p>${data.message}</p>
+        <p class="resolution-text">${data.resolution}</p>
+    `;
     showScreen('result');
-
-    startTimer(10, 'result-time', () => {
-        // Timer completed, server will handle next phase
-    });
 });
 
-socket.on('game-winner', (winner) => {
-    document.getElementById('winner-message').textContent =
-        `${winner.name} is the last one standing and wins the game!`;
+// game-winner event handler
+socket.on('game-winner', (data) => {
+    document.getElementById('winner-message').innerHTML = `
+        <h3>${data.winner.name} Wins!</h3>
+        <p class="ending-text">${data.ending}</p>
+        <div class="story-recap">
+            <h4>Story Recap</h4>
+            <pre>${data.recap}</pre>
+        </div>
+    `;
     showScreen('winner');
 });
+
+socket.on('game-draw', (data) => {
+    document.getElementById('winner-message').innerHTML = `
+        <h3>It's a Draw!</h3>
+        <p class="ending-text">${data.message}</p>
+        <div class="story-recap">
+            <h4>Story Recap</h4>
+            <pre>${data.recap}</pre>
+        </div>
+    `;
+    showScreen('winner');
+});
+
 
 socket.on('player-disconnected', (data) => {
     const notification = document.createElement('div');
