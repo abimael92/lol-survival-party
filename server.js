@@ -231,6 +231,34 @@ function startGame(game) {
     }, 20000);
 }
 
+// NEW FUNCTION: Show story resolution before voting
+function showStoryResolution(game) {
+    game.phase = 'story-resolution';
+
+    // Prepare submissions for resolution display
+    const submissionsForResolution = {};
+    Object.keys(game.submissions).forEach((playerId) => {
+        const player = game.players.find(p => p.id === playerId);
+        if (player && game.submissions[playerId]) {
+            submissionsForResolution[playerId] = {
+                text: game.submissions[playerId].text,
+                item: game.submissions[playerId].item,
+                playerName: player.name
+            };
+        }
+    });
+
+    // Send resolution to all players
+    io.to(game.id).emit('story-resolution', {
+        submissions: submissionsForResolution
+    });
+
+    // After showing resolution, move to voting
+    game.timer = setTimeout(() => {
+        startVoting(game);
+    }, 15000);
+}
+
 function startVoting(game) {
     clearTimeout(game.timer);
     game.phase = 'vote';
@@ -406,7 +434,8 @@ io.on('connection', (socket) => {
             // Check if all alive players have submitted
             const alivePlayers = game.players.filter(p => p.alive);
             if (Object.keys(game.submissions).length === alivePlayers.length) {
-                startVoting(game);
+                // Show story resolution before voting
+                showStoryResolution(game);
             }
         }
     });
