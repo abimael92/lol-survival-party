@@ -1,23 +1,30 @@
 // screenManager.js
 
-// DOM elements for screens
-export const screens = {
-    welcome: document.getElementById('welcome-screen'),
-    story: document.getElementById('story-screen'),
-    submit: document.getElementById('submit-screen'),
-    vote: document.getElementById('vote-screen'),
-    result: document.getElementById('result-screen'),
-    winner: document.getElementById('winner-screen'),
-    loser: document.getElementById('loser-screen')
-};
+let screens = {};
+let timerElements = {};
+const activeTimers = {}; // Guardar intervalos por elemento
 
-// DOM elements for timers
-export const timerElements = {
-    story: document.getElementById('story-time'),
-    submit: document.getElementById('submit-time'),
-    vote: document.getElementById('vote-time'),
-    result: document.getElementById('result-time')
-};
+/**
+ * Inicializa los elementos del DOM. Llamar después de DOMContentLoaded
+ */
+export function initScreens() {
+    screens = {
+        welcome: document.getElementById('welcome-screen'),
+        story: document.getElementById('story-screen'),
+        submit: document.getElementById('submit-screen'),
+        vote: document.getElementById('vote-screen'),
+        result: document.getElementById('result-screen'),
+        winner: document.getElementById('winner-screen'),
+        loser: document.getElementById('loser-screen')
+    };
+
+    timerElements = {
+        story: document.getElementById('story-time'),
+        submit: document.getElementById('submit-time'),
+        vote: document.getElementById('vote-time'),
+        result: document.getElementById('result-time')
+    };
+}
 
 /**
  * Show only the specified screen and hide others
@@ -37,6 +44,8 @@ export function showScreen(screenName) {
  * @param {function} callback - function to call when timer ends
  */
 export function startTimer(duration, elementId, callback) {
+    if (activeTimers[elementId]) clearInterval(activeTimers[elementId]);
+
     let time = duration;
     const timerElement = timerElements[elementId] || document.getElementById(elementId);
     if (timerElement) timerElement.textContent = time;
@@ -46,10 +55,12 @@ export function startTimer(duration, elementId, callback) {
         if (timerElement) timerElement.textContent = time;
         if (time <= 0) {
             clearInterval(countdown);
+            delete activeTimers[elementId];
             if (callback) callback();
         }
     }, 1000);
 
+    activeTimers[elementId] = countdown;
     return countdown;
 }
 
@@ -76,8 +87,12 @@ export function setupVoting(socket) {
         const pid = item.dataset.playerId;
 
         const voteScreen = screens.vote;
-        if (voteScreen && voteScreen.classList.contains('active') && !document.querySelector('.submission-item.voted')) {
-            socket.emit('submit-vote', pid);
-        }
+        if (!voteScreen || !voteScreen.classList.contains('active')) return;
+
+        // Solo permitir un voto
+        if (document.querySelector('.submission-item.voted')) return;
+
+        socket.emit('submit-vote', pid);
+        item.classList.add('voted');
     });
 }
