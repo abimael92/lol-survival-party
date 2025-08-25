@@ -1,4 +1,3 @@
-const socket = io();
 let playerId = null;
 let currentGameCode = null;
 let currentGameState = null;
@@ -423,4 +422,4 @@ socket.on('new-host', (hostId) => {
 });
 
 // Initialize the game when the document is loaded
-document.addEventListener('DOMContentLoaded', initGame);
+// document.addEventListener('DOMContentLoaded', initGame);
