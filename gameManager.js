@@ -8,7 +8,7 @@ function initGameManager(io) {
         const gameId = uuidv4();
         games[gameId] = {
             players: [{ id: socket.id, name: playerName }],
-            state: 'waiting',
+            state: 'waiting', // waiting | in-progress | voting | finished
             votes: {},
             stories: {}
         };
@@ -23,9 +23,14 @@ function initGameManager(io) {
             socket.emit('error', 'Game not found');
             return;
         }
+        if (game.state !== 'waiting') {
+            socket.emit('error', 'Cannot join, game already started');
+            return;
+        }
+
         game.players.push({ id: socket.id, name: playerName });
         socket.join(gameId);
-        io.to(gameId).emit('player-joined', { player: playerName });
+        io.to(gameId).emit('player-joined', { player: playerName, players: game.players });
         console.log(`${playerName} joined game ${gameId}`);
     }
 
@@ -34,6 +39,11 @@ function initGameManager(io) {
         if (!gameId) return;
 
         const game = games[gameId];
+        if (game.players.length < 2) {
+            socket.emit('error', 'Need at least 2 players to start');
+            return;
+        }
+
         game.state = 'in-progress';
         io.to(gameId).emit('game-started', { players: game.players });
         console.log(`Game ${gameId} started`);
@@ -44,9 +54,18 @@ function initGameManager(io) {
         if (!gameId) return;
 
         const game = games[gameId];
+        if (game.state !== 'in-progress') return;
+
         game.stories[socket.id] = story;
         io.to(gameId).emit('story-submitted', { playerId: socket.id, story });
-        console.log(`Player ${socket.id} submitted story: ${story}`);
+
+        // Check if all players submitted
+        if (Object.keys(game.stories).length === game.players.length) {
+            game.state = 'voting';
+            game.votes = {};
+            io.to(gameId).emit('all-stories-submitted', { stories: game.stories });
+            console.log(`All stories submitted for game ${gameId}`);
+        }
     }
 
     function handleSubmitVote(socket, votedPlayerId) {
@@ -54,10 +73,12 @@ function initGameManager(io) {
         if (!gameId) return;
 
         const game = games[gameId];
+        if (game.state !== 'voting') return;
+
         game.votes[socket.id] = votedPlayerId;
 
         if (Object.keys(game.votes).length === game.players.length) {
-            // All votes in
+            game.state = 'finished';
             io.to(gameId).emit('votes-complete', { votes: game.votes });
             console.log(`Votes complete for game ${gameId}`);
         }
@@ -69,10 +90,11 @@ function initGameManager(io) {
 
         const game = games[gameId];
         const playerIndex = game.players.findIndex(p => p.id === socket.id);
+
         if (playerIndex !== -1) {
             const playerName = game.players[playerIndex].name;
             game.players.splice(playerIndex, 1);
-            io.to(gameId).emit('player-left', { player: playerName });
+            io.to(gameId).emit('player-left', { player: playerName, players: game.players });
             console.log(`${playerName} disconnected from game ${gameId}`);
         }
 
@@ -83,8 +105,8 @@ function initGameManager(io) {
     }
 
     function findGameBySocket(socketId) {
-        return Object.keys(games).find(
-            gameId => games[gameId].players.some(p => p.id === socketId)
+        return Object.keys(games).find(gameId =>
+            games[gameId].players.some(p => p.id === socketId)
         );
     }
 
