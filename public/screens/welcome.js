@@ -1,116 +1,134 @@
-import { socket } from "../socketManager.js";
+import { socket, setPlayerId, setCurrentGameCode, setCurrentGameState } from '../socketManager.js';
+import { showScreen } from '../screenManager.js';
 
-export function renderWelcome(container) {
-    container.classList.add("screen");
-    container.innerHTML = `
-        <h1>Story Sacrifice</h1>
-        <p>Join with your friends. Create stories. Sacrifice the weakest!</p>
+// Generate QR code function
+function generateQRCode(url) {
+    const qrContainer = document.getElementById('qr-code');
+    if (!qrContainer) return;
 
-        <div id="game-creation">
-            <div class="input-group">
-                <input type="text" id="player-name" placeholder="Enter your name">
-                <button id="create-btn">Create Game</button>
-            </div>
-            <div class="divider">OR</div>
-            <div id="join-existing">
-                <div class="input-group">
-                    <input type="text" id="game-code-input" placeholder="Enter game code">
-                    <button id="join-btn">Join Game</button>
-                </div>
-            </div>
-        </div>
+    qrContainer.innerHTML = '';
+    const qrImg = document.createElement('img');
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}`;
+    qrContainer.appendChild(qrImg);
+}
 
-        <div id="game-info" style="display: none;">
-            <p id="game-code-display"></p>
-            <div id="share-buttons">
-                <button id="copy-link">Copy Link</button>
-                <button id="share-qr">Show QR Code</button>
-            </div>
-            <div id="qr-code"></div>
-        </div>
-
-        <div id="player-list" style="display: none;">
-            <h2>Players</h2>
-            <ul id="players"></ul>
-        </div>
-
-        <div id="host-controls" style="display: none;">
-            <button id="start-btn">Start Game</button>
-        </div>
-    `;
-
-    container.setup = function () {
-        const playerNameInput = document.getElementById("player-name");
-        const createBtn = document.getElementById("create-btn");
-        const joinBtn = document.getElementById("join-btn");
-
-        createBtn.onclick = () => {
-            const name = playerNameInput.value.trim();
-            if (!name) return alert("Enter your name");
-            socket.emit("create-game", name);
-        };
-
-        joinBtn.onclick = () => {
-            const code = document.getElementById("game-code-input").value.trim();
-            if (!code) return alert("Enter game code");
-            const name = playerNameInput.value.trim();
-            if (!name) return alert("Enter your name");
-            socket.emit("join-game", { gameCode: code, playerName: name });
-        };
-
-        // Socket listeners for updates
-        socket.on("game-created", ({ gameCode, player }) => {
-            showGameInfo(gameCode);
-            updatePlayerList([player]);
-            showHostControls(true);
+export function initGame() {
+    // Create game button
+    const createBtn = document.getElementById('create-btn');
+    if (createBtn) {
+        createBtn.addEventListener('click', () => {
+            const playerName = document.getElementById('player-name').value.trim();
+            if (playerName) {
+                socket.emit('create-game', playerName);
+            } else {
+                alert('Please enter your name');
+            }
         });
+    }
 
-        socket.on("player-joined", (player) => {
-            addPlayerToList(player);
+    // Join game button
+    const joinBtn = document.getElementById('join-btn');
+    if (joinBtn) {
+        joinBtn.addEventListener('click', () => {
+            const playerName = document.getElementById('player-name').value.trim();
+            const gameCode = document.getElementById('game-code-input').value.trim().toUpperCase();
+            if (playerName && gameCode) {
+                setCurrentGameCode(gameCode);
+                socket.emit('join-game', { gameCode, playerName });
+            } else {
+                alert('Please enter your name and game code');
+            }
         });
+    }
 
-        socket.on("game-state-update", (game) => {
-            updatePlayerList(game.players);
-            showHostControls(game.host === socket.id);
+    // Start game button (host only)
+    const startBtn = document.getElementById('start-btn');
+    if (startBtn) {
+        startBtn.addEventListener('click', () => {
+            socket.emit('start-game');
         });
+    }
 
-        // Start game button
-        document.getElementById("start-btn").onclick = () => {
-            socket.emit("start-game");
-        };
+    // Share buttons
+    const copyLinkBtn = document.getElementById('copy-link');
+    if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', () => {
+            if (currentGameCode) {
+                const gameLink = `${window.location.origin}${window.location.pathname}?game=${currentGameCode}`;
+                navigator.clipboard.writeText(gameLink).then(() => {
+                    alert('Game link copied to clipboard!');
+                }).catch(() => {
+                    alert('Failed to copy link. Please manually copy the URL.');
+                });
+            } else {
+                alert('No game code available');
+            }
+        });
+    }
 
-        function showGameInfo(code) {
-            document.getElementById("game-info").style.display = "block";
-            document.getElementById("game-code-display").textContent = `Game Code: ${code}`;
+    const shareQrBtn = document.getElementById('share-qr');
+    if (shareQrBtn) {
+        shareQrBtn.addEventListener('click', () => {
+            if (currentGameCode) {
+                const gameLink = `${window.location.origin}${window.location.pathname}?game=${currentGameCode}`;
+                generateQRCode(gameLink);
+            } else {
+                alert('No game code available');
+            }
+        });
+    }
+
+    // Check for game code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameCodeFromUrl = urlParams.get('game');
+    if (gameCodeFromUrl) {
+        document.getElementById('game-code-input').value = gameCodeFromUrl;
+    }
+}
+
+export function handleGameCreated(data) {
+    setCurrentGameCode(data.gameCode);
+    setPlayerId(data.player.id);
+
+    document.getElementById('game-code-display').textContent = `Game Code: ${data.gameCode}`;
+    document.getElementById('game-info').style.display = 'block';
+    document.getElementById('player-list').style.display = 'block';
+    document.getElementById('host-controls').style.display = 'block';
+    document.getElementById('game-creation').style.display = 'none';
+
+    // Add yourself to player list
+    const playersList = document.getElementById('players');
+    const li = document.createElement('li');
+    li.textContent = `${data.player.name} (You) 🎮`;
+    playersList.appendChild(li);
+}
+
+export function handlePlayerJoined(player) {
+    setPlayerId(player.id);
+
+    document.getElementById('player-name').disabled = true;
+    document.getElementById('game-code-input').disabled = true;
+    document.querySelectorAll('button').forEach(btn => {
+        if (btn.id !== 'start-btn' && btn.id !== 'copy-link' && btn.id !== 'share-qr') {
+            btn.disabled = true;
         }
+    });
 
-        function updatePlayerList(players) {
-            const list = document.getElementById("players");
-            list.innerHTML = "";
-            players.forEach((p) => {
-                const li = document.createElement("li");
-                li.textContent = p.name;
-                if (p.id === players[0].id) {
-                    const badge = document.createElement("span");
-                    badge.textContent = "HOST";
-                    badge.className = "host-badge";
-                    li.appendChild(badge);
-                }
-                list.appendChild(li);
-            });
-            document.getElementById("player-list").style.display = "block";
-        }
+    document.getElementById('game-info').style.display = 'block';
+    document.getElementById('player-list').style.display = 'block';
+}
 
-        function addPlayerToList(player) {
-            const list = document.getElementById("players");
-            const li = document.createElement("li");
-            li.textContent = player.name;
-            list.appendChild(li);
-            document.getElementById("player-list").style.display = "block";
-        }
+export function handleGameStateUpdate(gameState) {
+    setCurrentGameState(gameState);
+    const playersList = document.getElementById('players');
+    playersList.innerHTML = '';
 
-        function showHostControls(show) {
-            document.getElementById("host-controls").style.display = show ? "block" : "none";
+    gameState.players.forEach(player => {
+        const li = document.createElement('li');
+        li.textContent = `${player.name} ${player.id === playerId ? '(You) ' : ''}${player.alive ? '✅' : '💀'}`;
+        if (player.id === gameState.host) {
+            li.innerHTML += ' <span class="host-badge">HOST</span>';
         }
-    };
+        playersList.appendChild(li);
+    });
 }
