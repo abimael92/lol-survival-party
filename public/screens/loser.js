@@ -1,16 +1,12 @@
-// Spectate button
-const spectateBtn = document.getElementById('spectate-btn');
-if (spectateBtn) {
-    spectateBtn.addEventListener('click', () => {
-        // Implement spectate functionality
-        alert('Spectate mode activated');
-    });
-}
+import { showScreen } from '../screenManager.js';
 
-// Leave game button
-const leaveBtn = document.getElementById('leave-btn');
-if (leaveBtn) {
-    leaveBtn.addEventListener('click', () => {
-        location.reload();
-    });
+export function handleGameLoser(data) {
+    showScreen('loser');
+    const loserEl = document.getElementById('loser-content');
+    if (!loserEl) return;
+
+    loserEl.innerHTML = `
+        <div class="loser-message">💀 You were eliminated!</div>
+        ${data.reason ? `<div class="loser-reason">${data.reason}</div>` : ''}
+    `;
 }
