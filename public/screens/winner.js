@@ -1,14 +1,41 @@
-export function renderWinner(container) {
-    container.classList.add("screen");
-    container.innerHTML = `
-        <h2>Game Over</h2>
-        <div id="winner-content"></div>
-        <button id="play-again">Play Again</button>
+import { showScreen } from '../screenManager.js';
+
+// Play again button
+const playAgainBtn = document.getElementById('play-again');
+if (playAgainBtn) {
+    playAgainBtn.addEventListener('click', () => {
+        location.reload();
+    });
+}
+
+export function handleGameWinner(data) {
+    const winnerHTML = `
+        <div class="final-chapter">
+            <h2>THE SAGA CONCLUDES</h2>
+            <div class="final-story">${data.story}</div>
+        </div>
+        <div class="full-recap">
+            <h3>COMPLETE STORY</h3>
+            <pre>${data.recap}</pre>
+        </div>
     `;
 
-    container.setup = function () {
-        document.getElementById("play-again").onclick = () => {
-            console.log("Play again clicked");
-        };
-    };
+    document.getElementById('winner-content').innerHTML = winnerHTML;
+    showScreen('winner');
+}
+
+export function handleGameDraw(data) {
+    const drawHTML = `
+        <div class="final-chapter">
+            <h2>AN UNEXPECTED CONCLUSION</h2>
+            <div class="final-story">${data.message}</div>
+        </div>
+        <div class="full-recap">
+            <h3>COMPLETE STORY</h3>
+            <pre>${data.recap}</pre>
+        </div>
+    `;
+
+    document.getElementById('winner-content').innerHTML = drawHTML;
+    showScreen('winner');
 }
