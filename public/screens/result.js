@@ -1,18 +1,17 @@
-export function renderResult(container) {
-    container.classList.add("screen");
-    container.innerHTML = `
-        <h2>Sacrifice Result</h2>
-        <div id="result-content"></div>
-        <div id="result-timer">Next round in: <span id="result-time">15</span>s</div>
+import { showScreen, startTimer } from '../screenManager.js';
+
+export function handlePlayerSacrificed(data) {
+    const resultHTML = `
+        <div class="elimination-story">
+            <h3>${data.player.name} has been left behind!</h3>
+            <div class="elimination-reason">${data.message}</div>
+            <div class="story-continuation">${data.continuation}</div>
+        </div>
     `;
 
-    container.setup = function () {
-        let time = 15;
-        const timerEl = document.getElementById("result-time");
-        const interval = setInterval(() => {
-            time--;
-            timerEl.textContent = time;
-            if (time <= 0) clearInterval(interval);
-        }, 1000);
-    };
+    document.getElementById('result-content').innerHTML = resultHTML;
+    showScreen('result');
+    startTimer(15, 'result-time', () => {
+        // Timer completed, server will handle next phase
+    });
 }
