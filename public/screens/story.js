@@ -1,46 +1,38 @@
 import { showScreen, startTimer } from '../screenManager.js';
+import { currentGameCode } from '../socketManager.js';
 
 export function handleNewStory(storyData) {
-    let storyHTML = '';
+    const storyContent = document.getElementById('story-content');
+    if (!storyContent) return;
 
-    // Show introduction only for first round
-    if (storyData.introduction) {
-        storyHTML += `<div class="story-intro">${storyData.introduction}</div>`;
-    }
-
-    // Add scenario and crisis
-    storyHTML += `
+    let html = '';
+    if (storyData.introduction) html += `<div class="story-intro">${storyData.introduction}</div>`;
+    html += `
         <div class="story-scenario">${storyData.scenario}</div>
         <div class="story-crisis">${storyData.crisis}</div>
         <div class="story-item">Your Item: <strong>${storyData.playerItem}</strong></div>
     `;
-
-    document.getElementById('story-content').innerHTML = storyHTML;
+    storyContent.innerHTML = html;
     showScreen('story');
+
     startTimer(20, 'story-time', () => {
-        // Timer completed, server will handle phase change
+        // server handles next phase
     });
 }
 
 export function handleStoryResolution(data) {
-    let resolutionHTML = `<div class="resolution-title">How the crisis was resolved:</div>`;
+    const storyContent = document.getElementById('story-content');
+    if (!storyContent) return;
 
-    for (const [playerId, submission] of Object.entries(data.submissions)) {
-        resolutionHTML += `
-            <div class="player-resolution">
-                <strong>${submission.playerName}</strong> used their <em>${submission.item}</em> to 
-                ${submission.text}
-            </div>
-        `;
+    let html = `<div class="resolution-title">How the crisis was resolved:</div>`;
+    for (const [pid, submission] of Object.entries(data.submissions)) {
+        html += `<div class="player-resolution">
+            <strong>${submission.playerName}</strong> used <em>${submission.item}</em> to ${submission.text}
+        </div>`;
     }
-
-    // Add the silly resolution from the server
-    resolutionHTML += `<div class="silly-resolution">${data.resolution}</div>`;
-
-    document.getElementById('story-content').innerHTML = resolutionHTML;
+    html += `<div class="silly-resolution">${data.resolution}</div>`;
+    storyContent.innerHTML = html;
     showScreen('story');
 
-    startTimer(15, 'story-time', () => {
-        // Timer completed, server will handle next phase
-    });
+    startTimer(15, 'story-time', () => { });
 }

@@ -6,19 +6,28 @@ function initGameManager(io) {
 
     function handleCreateGame(socket, playerName) {
         const gameId = uuidv4();
+        const player = { id: socket.id, name: playerName };
+
         games[gameId] = {
-            players: [{ id: socket.id, name: playerName }],
-            state: 'waiting', // waiting | in-progress | voting | finished
+            players: [player],
+            state: 'waiting',
             votes: {},
             stories: {}
         };
+
         socket.join(gameId);
-        socket.emit('game-created', { gameId });
+
+        // Enviar toda la info que el cliente espera
+        socket.emit('game-created', {
+            gameCode: gameId,
+            player
+        });
+
         console.log(`Game ${gameId} created by ${playerName}`);
     }
 
-    function handleJoinGame(socket, { gameId, playerName }) {
-        const game = games[gameId];
+    function handleJoinGame(socket, { gameCode, playerName }) {
+        const game = games[gameCode];
         if (!game) {
             socket.emit('error', 'Game not found');
             return;
@@ -28,11 +37,15 @@ function initGameManager(io) {
             return;
         }
 
-        game.players.push({ id: socket.id, name: playerName });
-        socket.join(gameId);
-        io.to(gameId).emit('player-joined', { player: playerName, players: game.players });
-        console.log(`${playerName} joined game ${gameId}`);
+        const player = { id: socket.id, name: playerName };
+        game.players.push(player);
+        socket.join(gameCode);
+
+        io.to(gameCode).emit('player-joined', player);
+
+        console.log(`${playerName} joined game ${gameCode}`);
     }
+
 
     function handleStartGame(socket) {
         const gameId = findGameBySocket(socket.id);
