@@ -1,9 +1,15 @@
+// main.js
 import { initGame } from './screens/welcome.js';
 import { setupSocketHandlers } from './socketManager.js';
-import { showScreen } from './screenManager.js';
+import { initScreens, showScreen } from './screenManager.js';
 
-// Initialize the game when the document is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar los elementos del DOM
+    initScreens();
+
+    // Iniciar el juego
     initGame();
+
+    // Conectar sockets
     setupSocketHandlers();
 });
