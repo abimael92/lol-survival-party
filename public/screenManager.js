@@ -1,12 +1,8 @@
 // screenManager.js
-
 let screens = {};
 let timerElements = {};
-const activeTimers = {}; // Guardar intervalos por elemento
+const activeTimers = {};
 
-/**
- * Inicializa los elementos del DOM. Llamar después de DOMContentLoaded
- */
 export function initScreens() {
     screens = {
         welcome: document.getElementById('welcome-screen'),
@@ -26,23 +22,11 @@ export function initScreens() {
     };
 }
 
-/**
- * Show only the specified screen and hide others
- * @param {string} screenName
- */
 export function showScreen(screenName) {
-    Object.values(screens).forEach(screen => {
-        if (screen) screen.classList.remove('active');
-    });
-    if (screens[screenName]) screens[screenName].classList.add('active');
+    Object.values(screens).forEach(screen => screen?.classList.remove('active'));
+    screens[screenName]?.classList.add('active');
 }
 
-/**
- * Start a countdown timer
- * @param {number} duration - seconds
- * @param {string} elementId - key in timerElements or id of DOM element
- * @param {function} callback - function to call when timer ends
- */
 export function startTimer(duration, elementId, callback) {
     if (activeTimers[elementId]) clearInterval(activeTimers[elementId]);
 
@@ -64,10 +48,6 @@ export function startTimer(duration, elementId, callback) {
     return countdown;
 }
 
-/**
- * Generate a QR code for a given URL
- * @param {string} url
- */
 export function generateQRCode(url) {
     const qrContainer = document.getElementById('qr-code');
     if (!qrContainer) return;
@@ -77,22 +57,15 @@ export function generateQRCode(url) {
     qrContainer.appendChild(qrImg);
 }
 
-/**
- * Set up voting click handlers for submissions
- */
 export function setupVoting(socket) {
     document.addEventListener('click', (e) => {
         const item = e.target.closest('.submission-item');
         if (!item) return;
         const pid = item.dataset.playerId;
 
-        const voteScreen = screens.vote;
-        if (!voteScreen || !voteScreen.classList.contains('active')) return;
-
-        // Solo permitir un voto
-        if (document.querySelector('.submission-item.voted')) return;
-
-        socket.emit('submit-vote', pid);
-        item.classList.add('voted');
+        if (screens.vote?.classList.contains('active') && !document.querySelector('.submission-item.voted')) {
+            socket.emit('submit-vote', pid);
+            item.classList.add('voted');
+        }
     });
 }
