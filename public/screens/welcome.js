@@ -1,4 +1,5 @@
-import { socket, setPlayerId, setCurrentGameCode, setCurrentGameState } from '../socketManager.js';
+// welcome.js
+import { socket, setPlayerId, setCurrentGameCode, setCurrentGameState, currentGameCode } from '../socketManager.js';
 import { showScreen } from '../screenManager.js';
 
 // Generate QR code function
@@ -13,11 +14,18 @@ function generateQRCode(url) {
 }
 
 export function initGame() {
-    // Create game button
+    const playerNameInput = document.getElementById('player-name');
+    const gameCodeInput = document.getElementById('game-code-input');
     const createBtn = document.getElementById('create-btn');
-    if (createBtn) {
+    const joinBtn = document.getElementById('join-btn');
+    const startBtn = document.getElementById('start-btn');
+    const copyLinkBtn = document.getElementById('copy-link');
+    const shareQrBtn = document.getElementById('share-qr');
+
+    // Create game
+    if (createBtn && playerNameInput) {
         createBtn.addEventListener('click', () => {
-            const playerName = document.getElementById('player-name').value.trim();
+            const playerName = playerNameInput.value.trim();
             if (playerName) {
                 socket.emit('create-game', playerName);
             } else {
@@ -26,12 +34,11 @@ export function initGame() {
         });
     }
 
-    // Join game button
-    const joinBtn = document.getElementById('join-btn');
-    if (joinBtn) {
+    // Join game
+    if (joinBtn && playerNameInput && gameCodeInput) {
         joinBtn.addEventListener('click', () => {
-            const playerName = document.getElementById('player-name').value.trim();
-            const gameCode = document.getElementById('game-code-input').value.trim().toUpperCase();
+            const playerName = playerNameInput.value.trim();
+            const gameCode = gameCodeInput.value.trim().toUpperCase();
             if (playerName && gameCode) {
                 setCurrentGameCode(gameCode);
                 socket.emit('join-game', { gameCode, playerName });
@@ -41,16 +48,14 @@ export function initGame() {
         });
     }
 
-    // Start game button (host only)
-    const startBtn = document.getElementById('start-btn');
+    // Start game (host only)
     if (startBtn) {
         startBtn.addEventListener('click', () => {
             socket.emit('start-game');
         });
     }
 
-    // Share buttons
-    const copyLinkBtn = document.getElementById('copy-link');
+    // Copy link button
     if (copyLinkBtn) {
         copyLinkBtn.addEventListener('click', () => {
             if (currentGameCode) {
@@ -58,7 +63,7 @@ export function initGame() {
                 navigator.clipboard.writeText(gameLink).then(() => {
                     alert('Game link copied to clipboard!');
                 }).catch(() => {
-                    alert('Failed to copy link. Please manually copy the URL.');
+                    alert('Failed to copy link. Please copy manually.');
                 });
             } else {
                 alert('No game code available');
@@ -66,7 +71,7 @@ export function initGame() {
         });
     }
 
-    const shareQrBtn = document.getElementById('share-qr');
+    // Share QR button
     if (shareQrBtn) {
         shareQrBtn.addEventListener('click', () => {
             if (currentGameCode) {
@@ -78,11 +83,11 @@ export function initGame() {
         });
     }
 
-    // Check for game code in URL
+    // Prefill game code from URL
     const urlParams = new URLSearchParams(window.location.search);
     const gameCodeFromUrl = urlParams.get('game');
-    if (gameCodeFromUrl) {
-        document.getElementById('game-code-input').value = gameCodeFromUrl;
+    if (gameCodeFromUrl && gameCodeInput) {
+        gameCodeInput.value = gameCodeFromUrl;
     }
 }
 
@@ -90,45 +95,58 @@ export function handleGameCreated(data) {
     setCurrentGameCode(data.gameCode);
     setPlayerId(data.player.id);
 
-    document.getElementById('game-code-display').textContent = `Game Code: ${data.gameCode}`;
-    document.getElementById('game-info').style.display = 'block';
-    document.getElementById('player-list').style.display = 'block';
-    document.getElementById('host-controls').style.display = 'block';
-    document.getElementById('game-creation').style.display = 'none';
+    const gameCodeDisplay = document.getElementById('game-code-display');
+    const gameInfo = document.getElementById('game-info');
+    const playerListContainer = document.getElementById('player-list');
+    const hostControls = document.getElementById('host-controls');
+    const gameCreation = document.getElementById('game-creation');
+    const playersList = document.getElementById('players');
+
+    if (gameCodeDisplay) gameCodeDisplay.textContent = `Game Code: ${data.gameCode}`;
+    if (gameInfo) gameInfo.style.display = 'block';
+    if (playerListContainer) playerListContainer.style.display = 'block';
+    if (hostControls) hostControls.style.display = 'block';
+    if (gameCreation) gameCreation.style.display = 'none';
 
     // Add yourself to player list
-    const playersList = document.getElementById('players');
-    const li = document.createElement('li');
-    li.textContent = `${data.player.name} (You) 🎮`;
-    playersList.appendChild(li);
+    if (playersList) {
+        const li = document.createElement('li');
+        li.textContent = `${data.player.name} (You) 🎮`;
+        playersList.appendChild(li);
+    }
 }
 
 export function handlePlayerJoined(player) {
     setPlayerId(player.id);
 
-    document.getElementById('player-name').disabled = true;
-    document.getElementById('game-code-input').disabled = true;
-    document.querySelectorAll('button').forEach(btn => {
-        if (btn.id !== 'start-btn' && btn.id !== 'copy-link' && btn.id !== 'share-qr') {
-            btn.disabled = true;
-        }
-    });
+    const playerNameInput = document.getElementById('player-name');
+    const gameCodeInput = document.getElementById('game-code-input');
+    const buttons = document.querySelectorAll('button');
+    const gameInfo = document.getElementById('game-info');
+    const playerListContainer = document.getElementById('player-list');
 
-    document.getElementById('game-info').style.display = 'block';
-    document.getElementById('player-list').style.display = 'block';
+    if (playerNameInput) playerNameInput.disabled = true;
+    if (gameCodeInput) gameCodeInput.disabled = true;
+    buttons.forEach(btn => {
+        if (!['start-btn', 'copy-link', 'share-qr'].includes(btn.id)) btn.disabled = true;
+    });
+    if (gameInfo) gameInfo.style.display = 'block';
+    if (playerListContainer) playerListContainer.style.display = 'block';
 }
 
 export function handleGameStateUpdate(gameState) {
-    setCurrentGameState(gameState);
     const playersList = document.getElementById('players');
-    playersList.innerHTML = '';
+    setCurrentGameState(gameState);
 
-    gameState.players.forEach(player => {
-        const li = document.createElement('li');
-        li.textContent = `${player.name} ${player.id === playerId ? '(You) ' : ''}${player.alive ? '✅' : '💀'}`;
-        if (player.id === gameState.host) {
-            li.innerHTML += ' <span class="host-badge">HOST</span>';
-        }
-        playersList.appendChild(li);
-    });
+    if (playersList) {
+        playersList.innerHTML = '';
+        gameState.players.forEach(player => {
+            const li = document.createElement('li');
+            li.textContent = `${player.name} ${player.id === playerId ? '(You) ' : ''}${player.alive ? '✅' : '💀'}`;
+            if (player.id === gameState.host) {
+                li.innerHTML += ' <span class="host-badge">HOST</span>';
+            }
+            playersList.appendChild(li);
+        });
+    }
 }
