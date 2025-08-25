@@ -1,4 +1,3 @@
-import { io } from '/socket.io/socket.io.js';
 import { showScreen, startTimer } from './screenManager.js';
 import { handleGameCreated, handlePlayerJoined, handleGameStateUpdate } from './screens/welcome.js';
 import { handleNewStory } from './screens/story.js';
