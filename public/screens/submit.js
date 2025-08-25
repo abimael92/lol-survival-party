@@ -1,34 +1,35 @@
-import { socket } from '../socketManager.js';
 import { showScreen, startTimer } from '../screenManager.js';
+import { socket } from '../socketManager.js';
 
-// Submit action button
-const submitActionBtn = document.getElementById('submit-action');
-if (submitActionBtn) {
-    submitActionBtn.addEventListener('click', () => {
-        const action = document.getElementById('action-input').value.trim();
-        if (action) {
-            socket.emit('submit-action', { action });
-            submitActionBtn.disabled = true;
-            document.getElementById('submission-status').textContent = 'Submitted! Waiting for others...';
-        } else {
-            alert('Please describe your action');
+export function handlePhaseChange(phaseData) {
+    showScreen('submit');
+
+    const promptEl = document.getElementById('submit-prompt');
+    if (promptEl) promptEl.textContent = phaseData.prompt;
+
+    const submitInput = document.getElementById('submit-input');
+    const submitBtn = document.getElementById('submit-btn');
+
+    submitBtn?.addEventListener('click', () => {
+        if (submitInput?.value.trim()) {
+            socket.emit('submit-action', { story: submitInput.value.trim() });
+            submitInput.value = '';
+        }
+    });
+
+    startTimer(30, 'submit-time', () => {
+        if (submitInput?.value.trim()) {
+            socket.emit('submit-action', { story: submitInput.value.trim() });
+            submitInput.value = '';
         }
     });
 }
 
-export function handlePhaseChange(phase) {
-    if (phase === 'submit') {
-        showScreen('submit');
-        document.getElementById('action-input').value = '';
-        document.getElementById('submit-action').disabled = false;
-        document.getElementById('submission-status').textContent = '';
-
-        startTimer(60, 'submit-time', () => {
-            document.getElementById('submission-status').textContent = 'Time\'s up!';
-        });
-    }
-}
-
 export function handlePlayerSubmitted(data) {
-    document.getElementById('submission-status').textContent = `${data.submittedCount || 'Some'} players have submitted...`;
+    const submissionsList = document.getElementById('submitted-list');
+    if (submissionsList) {
+        const li = document.createElement('li');
+        li.textContent = `${data.playerName} submitted their action`;
+        submissionsList.appendChild(li);
+    }
 }
