@@ -12,6 +12,20 @@ const {
     generateDisconnectMessage
 } = require('./storyGenerator');
 
+// Add at the top of gameManager.js
+const debug = {
+    logPhase: (game, message = '') => {
+        console.log(`[GAME ${game.id}] Phase: ${game.phase}, Round: ${game.roundNumber}, Players: ${game.players.filter(p => p.alive).length} alive - ${message}`);
+    },
+    logVotes: (game) => {
+        const voteCounts = countVotes(game.votes);
+        console.log(`[GAME ${game.id}] Votes:`, voteCounts);
+    },
+    logSubmissions: (game) => {
+        console.log(`[GAME ${game.id}] Submissions:`, Object.keys(game.submissions).length, 'of', game.players.filter(p => p.alive).length);
+    }
+};
+
 // Helper function to shuffle array (Fisher-Yates algorithm)
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -68,11 +82,14 @@ function initGameManager(io) {
 
         // Don't start game if it has already ended
         if (game.phase === 'ended') {
+            console.log(`[GAME ${game.id}] Game already ended, cannot start`);
             return;
         }
 
+
         game.phase = 'story';
         game.roundNumber++;
+        debug.logPhase(game, 'New round started');
 
         // Get a random story for first round
         if (game.roundNumber === 1) {
@@ -136,6 +153,7 @@ function initGameManager(io) {
 
     // Show story resolution before voting
     function showStoryResolution(game) {
+        debug.logPhase(game, 'Showing story resolution');
         game.phase = 'story-resolution';
 
         // Prepare submissions for resolution display
@@ -162,19 +180,23 @@ function initGameManager(io) {
 
         // After showing resolution, move to voting
         game.timer = setTimeout(() => {
+            debug.logPhase(game, 'Moving to voting after resolution');
             startVoting(game);
         }, 15000);
     }
 
     function startVoting(game) {
+        debug.logPhase(game, 'Attempting to start voting');
 
         // Don't start game if it has already ended
         if (game.phase === 'ended') {
+            console.log(`[GAME ${game.id}] Game ended, skipping voting`);
             return;
         }
 
         clearTimeout(game.timer);
         game.phase = 'vote';
+        debug.logPhase(game, 'Voting started');
 
         // Reset voted status for all players
         game.players.forEach(player => {
@@ -211,10 +233,12 @@ function initGameManager(io) {
     }
 
     function endVoting(game) {
+        debug.logPhase(game, 'Ending voting');
         clearTimeout(game.timer);
 
         // Calculate votes and eliminate player
         const voteCounts = countVotes(game.votes);
+        debug.logVotes(game);
         let maxVotes = 0;
         let sacrificedPlayerId = null;
 
@@ -265,15 +289,18 @@ function initGameManager(io) {
 
                 // Only continue if there are still multiple players alive
                 if (remainingPlayers.length > 1) {
+                    debug.logPhase(game, 'Continuing to next round');
                     startGame(game);
                 }
                 // If only one player remains, end the game
                 else if (remainingPlayers.length === 1) {
+                    debug.logPhase(game, 'Game has a winner, ending game');
                     const winner = remainingPlayers[0];
                     const finalStory = generateFinalStoryEnding(winner, game);
                     const fullRecap = generateFullStoryRecap(game);
 
                     game.phase = 'ended'; // Set phase to ended to prevent further gameplay
+                    debug.logPhase(game, 'Game ended with winner');
 
                     io.to(game.id).emit('game-winner', {
                         winner: winner,
@@ -288,6 +315,7 @@ function initGameManager(io) {
                 }
                 // If no players remain (draw)
                 else {
+                    debug.logPhase(game, 'Game ended in draw');
                     game.phase = 'ended'; // Set phase to ended
                     const fullRecap = generateFullStoryRecap(game);
 
