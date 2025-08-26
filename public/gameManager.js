@@ -54,6 +54,15 @@ export function initGameManager(socket, uiManager) {
         }
     }
 
+    const clientDebug = {
+        logScreen: (screenName) => {
+            console.log(`[CLIENT] Screen: ${screenName}, Game Code: ${currentGameCode}`);
+        },
+        logEvent: (eventName, data) => {
+            console.log(`[CLIENT] Event: ${eventName}`, data);
+        }
+    };
+
     // Set up socket event handlers
     function setupSocketHandlers() {
         socket.on('game-created', (data) => {
@@ -165,6 +174,16 @@ export function initGameManager(socket, uiManager) {
         socket.onAny((eventName, data) => {
             if (window.gameEnded && eventName !== 'game-winner' && eventName !== 'game-draw' && eventName !== 'game-ended') {
                 console.log('Ignoring server event after game ended:', eventName);
+            }
+        });
+
+        // Add debug to all event handlers
+        socket.onAny((eventName, data) => {
+            clientDebug.logEvent(eventName, data);
+
+            // Log if game has ended but we're still receiving events
+            if (window.gameEnded && !['game-winner', 'game-draw', 'game-ended'].includes(eventName)) {
+                console.warn(`[CLIENT] Received ${eventName} after game ended!`);
             }
         });
 
