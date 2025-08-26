@@ -1,4 +1,11 @@
 // uiManager.js
+
+const uiDebug = {
+    logScreenChange: (fromScreen, toScreen) => {
+        console.log(`[UI] Screen change: ${fromScreen} -> ${toScreen}`);
+    }
+};
+
 export function initUIManager() {
     // DOM elements
     const screens = {
@@ -16,6 +23,10 @@ export function initUIManager() {
 
     // Show only the specified screen
     function showScreen(screenName) {
+
+        const currentScreen = Object.keys(screens).find(key => screens[key].classList.contains('active')) || 'none';
+        uiDebug.logScreenChange(currentScreen, screenName);
+
         Object.values(screens).forEach(screen => {
             screen.classList.remove('active');
         });
