@@ -65,6 +65,12 @@ function initGameManager(io) {
 
     // Start game function
     function startGame(game) {
+
+        // Don't start game if it has already ended
+        if (game.phase === 'ended') {
+            return;
+        }
+
         game.phase = 'story';
         game.roundNumber++;
 
@@ -161,8 +167,20 @@ function initGameManager(io) {
     }
 
     function startVoting(game) {
+
+        // Don't start game if it has already ended
+        if (game.phase === 'ended') {
+            return;
+        }
+
         clearTimeout(game.timer);
         game.phase = 'vote';
+
+        // Reset voted status for all players
+        game.players.forEach(player => {
+            player.voted = false;
+        });
+
         io.to(game.id).emit('phase-change', 'vote');
 
         // Prepare voting prompt
@@ -251,12 +269,15 @@ function initGameManager(io) {
                     const finalStory = generateFinalStoryEnding(winner, game);
                     const fullRecap = generateFullStoryRecap(game);
 
-                    game.phase = 'winner';
+                    game.phase = 'ended'; // Set phase to ended to prevent further gameplay
+                    clearTimeout(game.timer); // Clear any remaining timers
+
                     io.to(game.id).emit('game-winner', {
                         winner: winner,
                         story: finalStory,
                         recap: fullRecap
                     });
+                    // If no players remain (draw)
                 } else {
                     game.phase = 'draw';
                     const fullRecap = generateFullStoryRecap(game);
@@ -337,6 +358,14 @@ function initGameManager(io) {
         }
     }
 
+    // Add this function to check if all alive players have voted
+    function checkAllPlayersVoted(game) {
+        const alivePlayers = game.players.filter(p => p.alive);
+        const votedPlayers = alivePlayers.filter(p => p.voted);
+
+        return votedPlayers.length === alivePlayers.length;
+    }
+
     function handleSubmitVote(socket, votedPlayerId) {
         const game = findGameBySocket(socket.id);
         if (game && game.phase === 'vote') {
@@ -353,10 +382,9 @@ function initGameManager(io) {
             io.to(game.id).emit('vote-update', voteCounts);
 
             // Check if all alive players have voted
-            const alivePlayers = game.players.filter(p => p.alive);
-            const votedPlayers = alivePlayers.filter(p => p.voted);
-
-            if (votedPlayers.length === alivePlayers.length) {
+            if (checkAllPlayersVoted(game)) {
+                // All players have voted, end voting immediately
+                clearTimeout(game.timer); // Clear the voting timer
                 endVoting(game);
             }
         }
@@ -396,6 +424,8 @@ function initGameManager(io) {
             }
         }
     }
+
+
 
     return {
         handleCreateGame,

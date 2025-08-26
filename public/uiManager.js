@@ -3,6 +3,7 @@ export function initUIManager() {
     // DOM elements
     const screens = {
         welcome: document.getElementById('welcome-screen'),
+        gameInfo: document.getElementById('game-info'),
         story: document.getElementById('story-screen'),
         submit: document.getElementById('submit-screen'),
         vote: document.getElementById('vote-screen'),
@@ -25,7 +26,13 @@ export function initUIManager() {
 
     // Start a timer with visual countdown
     function startTimer(duration, elementId, callback) {
-        // Clear any existing timers
+
+        // Don't start any timers if game has ended
+        if (window.gameEnded) {
+            return null;
+        }
+
+        // Clear any existing timers with the same elementId
         clearAllTimers();
 
         let time = duration;
@@ -33,6 +40,7 @@ export function initUIManager() {
 
         if (timerElement) {
             timerElement.textContent = time;
+            timerElement.parentElement.style.display = 'block';
         }
 
         const timerId = setInterval(() => {
@@ -40,10 +48,23 @@ export function initUIManager() {
 
             if (timerElement) {
                 timerElement.textContent = time;
+
+                // Change color when time is running out
+                if (time <= 10) {
+                    timerElement.style.color = '#e94560';
+                    timerElement.style.fontWeight = 'bold';
+                }
             }
 
             if (time <= 0) {
                 clearInterval(timerId);
+                // Remove this timer from active timers
+                activeTimers = activeTimers.filter(id => id !== timerId);
+
+                if (timerElement) {
+                    timerElement.parentElement.style.display = 'none';
+                }
+
                 if (callback) callback();
             }
         }, 1000);
@@ -105,17 +126,16 @@ export function initUIManager() {
     }
 
     // Initialize UI event listeners
-    function initUI() {
+    function initUI(gameManager) {
         // Create game button
         const createBtn = document.getElementById('create-btn');
         if (createBtn) {
             createBtn.addEventListener('click', () => {
                 const playerName = document.getElementById('player-name').value.trim();
                 if (playerName) {
-                    return { type: 'create-game', data: playerName };
+                    gameManager.handleUIEvent({ type: 'create-game', data: playerName });
                 } else {
                     alert('Please enter your name');
-                    return null;
                 }
             });
         }
@@ -127,10 +147,9 @@ export function initUIManager() {
                 const playerName = document.getElementById('player-name').value.trim();
                 const gameCode = document.getElementById('game-code-input').value.trim().toUpperCase();
                 if (playerName && gameCode) {
-                    return { type: 'join-game', data: { gameCode, playerName } };
+                    gameManager.handleUIEvent({ type: 'join-game', data: { gameCode, playerName } });
                 } else {
                     alert('Please enter your name and game code');
-                    return null;
                 }
             });
         }
@@ -139,7 +158,7 @@ export function initUIManager() {
         const startBtn = document.getElementById('start-btn');
         if (startBtn) {
             startBtn.addEventListener('click', () => {
-                return { type: 'start-game', data: null };
+                gameManager.handleUIEvent({ type: 'start-game', data: null });
             });
         }
 
@@ -151,18 +170,38 @@ export function initUIManager() {
                 if (action) {
                     submitActionBtn.disabled = true;
                     document.getElementById('submission-status').textContent = 'Submitted! Waiting for others...';
-                    return { type: 'submit-action', data: { action } };
+                    gameManager.handleUIEvent({ type: 'submit-action', data: { action } });
                 } else {
                     alert('Please describe your action');
-                    return null;
                 }
             });
         }
 
         // Play again button
         const playAgainBtn = document.getElementById('play-again');
+
         if (playAgainBtn) {
             playAgainBtn.addEventListener('click', () => {
+                // Leave the game and return to the welcome screen
+                socket.emit('leave-game');
+                location.reload();
+            });
+        }
+
+        // Spectate button (for eliminated players)
+        const spectateBtn = document.getElementById('spectate-btn');
+        if (spectateBtn) {
+            spectateBtn.addEventListener('click', () => {
+                // Just show the current game state without participating
+                uiManager.showScreen('game-info');
+            });
+        }
+
+        // Leave game button
+        const leaveBtn = document.getElementById('leave-btn');
+        if (leaveBtn) {
+            leaveBtn.addEventListener('click', () => {
+                socket.emit('leave-game');
                 location.reload();
             });
         }
@@ -171,23 +210,23 @@ export function initUIManager() {
         const copyLinkBtn = document.getElementById('copy-link');
         if (copyLinkBtn) {
             copyLinkBtn.addEventListener('click', () => {
-                return { type: 'copy-link', data: null };
+                gameManager.handleUIEvent({ type: 'copy-link', data: null });
             });
         }
 
         const shareQrBtn = document.getElementById('share-qr');
         if (shareQrBtn) {
             shareQrBtn.addEventListener('click', () => {
-                return { type: 'share-qr', data: null };
+                gameManager.handleUIEvent({ type: 'share-qr', data: null });
             });
         }
 
         // Set up voting functionality
-        setupVoting();
+        setupVoting(gameManager);
     }
 
     // Set up voting functionality
-    function setupVoting() {
+    function setupVoting(gameManager) {
         document.addEventListener('click', (e) => {
             if (e.target.closest('.submission-item')) {
                 const submissionItem = e.target.closest('.submission-item');
@@ -195,10 +234,15 @@ export function initUIManager() {
 
                 // Only allow voting if we're on the vote screen and haven't voted yet
                 if (screens.vote.classList.contains('active') && !document.querySelector('.submission-item.voted')) {
-                    return { type: 'submit-vote', data: playerId };
+                    gameManager.handleUIEvent({ type: 'submit-vote', data: playerId });
+
+                    // Disable all voting buttons after voting
+                    document.querySelectorAll('.submission-item').forEach(item => {
+                        item.style.pointerEvents = 'none';
+                        item.style.opacity = '0.7';
+                    });
                 }
             }
-            return null;
         });
     }
 
@@ -207,10 +251,26 @@ export function initUIManager() {
         return `${window.location.origin}${window.location.pathname}?game=${gameCode}`;
     }
 
+    // Add a function to completely disable all game interactions
+    function disableGameInteractions() {
+        // Disable all buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.disabled = true;
+        });
+
+        // Make all screens non-interactive except winner screen
+        document.querySelectorAll('.screen').forEach(screen => {
+            if (!screen.id.includes('winner') && !screen.id.includes('loser')) {
+                screen.style.pointerEvents = 'none';
+            }
+        });
+    }
+
     return {
         showScreen,
         startTimer,
         clearAllTimers,
+        disableGameInteractions,
         generateQRCode,
         showDisconnectNotification,
         updatePlayerList,
