@@ -262,30 +262,44 @@ function initGameManager(io) {
             // Check if game should continue
             game.timer = setTimeout(() => {
                 const remainingPlayers = game.players.filter(p => p.alive);
+
+                // Only continue if there are still multiple players alive
                 if (remainingPlayers.length > 1) {
                     startGame(game);
-                } else if (remainingPlayers.length === 1) {
+                }
+                // If only one player remains, end the game
+                else if (remainingPlayers.length === 1) {
                     const winner = remainingPlayers[0];
                     const finalStory = generateFinalStoryEnding(winner, game);
                     const fullRecap = generateFullStoryRecap(game);
 
                     game.phase = 'ended'; // Set phase to ended to prevent further gameplay
-                    clearTimeout(game.timer); // Clear any remaining timers
 
                     io.to(game.id).emit('game-winner', {
                         winner: winner,
                         story: finalStory,
                         recap: fullRecap
                     });
-                    // If no players remain (draw)
-                } else {
-                    game.phase = 'draw';
+
+                    // Remove the game from active games after a delay
+                    setTimeout(() => {
+                        games.delete(game.id);
+                    }, 30000); // Remove after 30 seconds
+                }
+                // If no players remain (draw)
+                else {
+                    game.phase = 'ended'; // Set phase to ended
                     const fullRecap = generateFullStoryRecap(game);
 
                     io.to(game.id).emit('game-draw', {
                         message: "In a stunning turn of events, everyone managed to eliminate themselves!",
                         recap: fullRecap
                     });
+
+                    // Remove the game from active games after a delay
+                    setTimeout(() => {
+                        games.delete(game.id);
+                    }, 30000); // Remove after 30 seconds
                 }
             }, 15000);
         }

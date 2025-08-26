@@ -111,8 +111,8 @@ export function initGameManager(socket, uiManager) {
             });
         });
 
+        // In the setupSocketHandlers function
         socket.on('phase-change', (phase) => {
-
             // If game has ended, ignore all phase changes
             if (window.gameEnded) {
                 console.log('Game has ended, ignoring phase change to:', phase);
@@ -165,8 +165,6 @@ export function initGameManager(socket, uiManager) {
         socket.onAny((eventName, data) => {
             if (window.gameEnded && eventName !== 'game-winner' && eventName !== 'game-draw' && eventName !== 'game-ended') {
                 console.log('Ignoring server event after game ended:', eventName);
-                // Optionally, notify the server that the game has ended
-                socket.emit('game-ended-acknowledged');
             }
         });
 
@@ -290,6 +288,23 @@ export function initGameManager(socket, uiManager) {
                     });
                 }
             }, 2000);
+        }
+
+        // Add a function to completely disable all game interactions
+        function disableGameInteractions() {
+            // Disable all buttons except play-again and leave buttons
+            document.querySelectorAll('button').forEach(button => {
+                if (!button.id.includes('play-again') && !button.id.includes('leave-btn') && !button.id.includes('spectate-btn')) {
+                    button.disabled = true;
+                }
+            });
+
+            // Make all screens non-interactive except winner/loser screens
+            document.querySelectorAll('.screen').forEach(screen => {
+                if (!screen.id.includes('winner') && !screen.id.includes('loser')) {
+                    screen.style.pointerEvents = 'none';
+                }
+            });
         }
 
         // Update the vote-confirmed handler to check if all players have voted
