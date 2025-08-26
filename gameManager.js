@@ -1,126 +1,400 @@
 // gameManager.js
 const { v4: uuidv4 } = require('uuid');
+const {
+    getRandomStory,
+    generatePlayerList,
+    generateSillyResolution,
+    generateDeathMessage,
+    generateContinuationStory,
+    generateNewCrisis,
+    generateFinalStoryEnding,
+    generateFullStoryRecap,
+    generateDisconnectMessage
+} = require('./storyGenerator');
+
+// Helper function to shuffle array (Fisher-Yates algorithm)
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// Helper function to count votes
+function countVotes(votes) {
+    const counts = {};
+    Object.values(votes).forEach(votedId => {
+        counts[votedId] = (counts[votedId] || 0) + 1;
+    });
+    return counts;
+}
 
 function initGameManager(io) {
-    const games = {}; // { gameId: { players: [], state, votes, stories } }
+    const games = new Map();
 
-    function handleCreateGame(socket, playerName) {
-        const gameId = uuidv4();
-        const player = { id: socket.id, name: playerName };
-
-        games[gameId] = {
-            players: [player],
-            state: 'waiting',
+    // Create game function
+    function createGame(hostId) {
+        const gameCode = uuidv4().substring(0, 6).toUpperCase();
+        const game = {
+            id: gameCode,
+            host: hostId,
+            players: [],
+            currentStory: null,
+            storyIntroduction: "",
+            submissions: {},
             votes: {},
-            stories: {}
+            phase: 'waiting',
+            timer: null,
+            availableItems: [],
+            roundNumber: 0
         };
+        games.set(gameCode, game);
+        return game;
+    }
 
-        socket.join(gameId);
+    // Find game by socket ID
+    function findGameBySocket(socketId) {
+        for (const [gameCode, game] of games) {
+            if (game.players.some(player => player.id === socketId)) {
+                return game;
+            }
+        }
+        return null;
+    }
 
-        // Enviar toda la info que el cliente espera
-        socket.emit('game-created', {
-            gameCode: gameId,
-            player
+    // Start game function
+    function startGame(game) {
+        game.phase = 'story';
+        game.roundNumber++;
+
+        // Get a random story for first round
+        if (game.roundNumber === 1) {
+            const story = getRandomStory();
+            game.currentStory = story;
+            game.storyIntroduction = story.intro.replace('{players}', generatePlayerList(game.players));
+        } else {
+            // For subsequent rounds, generate a new crisis
+            game.currentStory.crisis = generateNewCrisis(game.currentStory, game.roundNumber);
+        }
+
+        // Reset and shuffle available items for this round
+        game.availableItems = [...game.currentStory.items];
+        shuffleArray(game.availableItems);
+
+        // Assign a unique item to each alive player
+        game.players.forEach(player => {
+            if (player.alive) {
+                if (game.availableItems.length > 0) {
+                    player.currentItem = game.availableItems.pop();
+                } else {
+                    player.currentItem = game.currentStory.items[
+                        Math.floor(Math.random() * game.currentStory.items.length)
+                    ];
+                }
+            }
         });
 
-        console.log(`Game ${gameId} created by ${playerName}`);
+        game.submissions = {};
+        game.votes = {};
+
+        // Reset voted status for all players
+        game.players.forEach(player => {
+            player.voted = false;
+        });
+
+        // Send the story to each player with their specific item
+        game.players.forEach(player => {
+            if (player.alive) {
+                io.to(player.id).emit('new-story', {
+                    introduction: game.roundNumber === 1 ? game.storyIntroduction : null,
+                    scenario: game.currentStory.scenario,
+                    crisis: game.currentStory.crisis,
+                    playerItem: player.currentItem,
+                    roundNumber: game.roundNumber
+                });
+            }
+        });
+
+        // After time for reading, move to submission phase
+        setTimeout(() => {
+            game.phase = 'submit';
+            io.to(game.id).emit('phase-change', 'submit');
+
+            // Set timer for submissions
+            game.timer = setTimeout(() => {
+                showStoryResolution(game);
+            }, 60000);
+        }, 20000);
     }
 
-    function handleJoinGame(socket, { gameCode, playerName }) {
-        const game = games[gameCode];
-        if (!game) {
-            socket.emit('error', 'Game not found');
-            return;
-        }
-        if (game.state !== 'waiting') {
-            socket.emit('error', 'Cannot join, game already started');
-            return;
-        }
+    // Show story resolution before voting
+    function showStoryResolution(game) {
+        game.phase = 'story-resolution';
 
-        const player = { id: socket.id, name: playerName };
-        game.players.push(player);
-        socket.join(gameCode);
+        // Prepare submissions for resolution display
+        const submissionsForResolution = {};
+        Object.keys(game.submissions).forEach((playerId) => {
+            const player = game.players.find(p => p.id === playerId);
+            if (player && game.submissions[playerId]) {
+                submissionsForResolution[playerId] = {
+                    text: game.submissions[playerId].text,
+                    item: game.submissions[playerId].item,
+                    playerName: player.name
+                };
+            }
+        });
 
-        io.to(gameCode).emit('player-joined', player);
+        // Generate a silly resolution for the crisis
+        const sillyResolution = generateSillyResolution(submissionsForResolution, game.currentStory.crisis);
 
-        console.log(`${playerName} joined game ${gameCode}`);
+        // Send resolution to all players
+        io.to(game.id).emit('story-resolution', {
+            submissions: submissionsForResolution,
+            resolution: sillyResolution
+        });
+
+        // After showing resolution, move to voting
+        game.timer = setTimeout(() => {
+            startVoting(game);
+        }, 15000);
     }
 
+    function startVoting(game) {
+        clearTimeout(game.timer);
+        game.phase = 'vote';
+        io.to(game.id).emit('phase-change', 'vote');
+
+        // Prepare voting prompt
+        const votingPrompt = "All team members contributed... but let's be honest, some plans were better than others. Who should we leave behind for the team's survival?";
+
+        // Prepare submissions for voting
+        const submissionsForVoting = {};
+        Object.keys(game.submissions).forEach((playerId) => {
+            const player = game.players.find(p => p.id === playerId);
+            if (player && game.submissions[playerId]) {
+                submissionsForVoting[playerId] = {
+                    text: game.submissions[playerId].text,
+                    item: game.submissions[playerId].item,
+                    playerName: player.name
+                };
+            }
+        });
+
+        io.to(game.id).emit('submissions-to-vote-on', {
+            prompt: votingPrompt,
+            submissions: submissionsForVoting
+        });
+
+        // Set timer for voting
+        game.timer = setTimeout(() => {
+            endVoting(game);
+        }, 45000);
+    }
+
+    function endVoting(game) {
+        clearTimeout(game.timer);
+
+        // Calculate votes and eliminate player
+        const voteCounts = countVotes(game.votes);
+        let maxVotes = 0;
+        let sacrificedPlayerId = null;
+
+        for (const [playerId, votes] of Object.entries(voteCounts)) {
+            if (votes > maxVotes) {
+                maxVotes = votes;
+                sacrificedPlayerId = playerId;
+            }
+        }
+
+        // If there's a tie, randomly select one
+        const tiedPlayers = Object.entries(voteCounts)
+            .filter(([_, votes]) => votes === maxVotes)
+            .map(([playerId, _]) => playerId);
+
+        if (tiedPlayers.length > 1) {
+            sacrificedPlayerId = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
+        }
+
+        const sacrificedPlayer = game.players.find(p => p.id === sacrificedPlayerId);
+        if (sacrificedPlayer && game.submissions[sacrificedPlayer.id]) {
+            sacrificedPlayer.alive = false;
+
+            const deathMessage = generateDeathMessage(
+                sacrificedPlayer.name,
+                game.submissions[sacrificedPlayer.id].text,
+                game.submissions[sacrificedPlayer.id].item
+            );
+
+            const continuationStory = generateContinuationStory(
+                game.players.filter(p => p.alive),
+                sacrificedPlayer,
+                game.currentStory
+            );
+
+            game.phase = 'result';
+
+            // Send elimination result to all players
+            io.to(game.id).emit('player-sacrificed', {
+                player: sacrificedPlayer,
+                message: deathMessage,
+                continuation: continuationStory
+            });
+
+            // Check if game should continue
+            game.timer = setTimeout(() => {
+                const remainingPlayers = game.players.filter(p => p.alive);
+                if (remainingPlayers.length > 1) {
+                    startGame(game);
+                } else if (remainingPlayers.length === 1) {
+                    const winner = remainingPlayers[0];
+                    const finalStory = generateFinalStoryEnding(winner, game);
+                    const fullRecap = generateFullStoryRecap(game);
+
+                    game.phase = 'winner';
+                    io.to(game.id).emit('game-winner', {
+                        winner: winner,
+                        story: finalStory,
+                        recap: fullRecap
+                    });
+                } else {
+                    game.phase = 'draw';
+                    const fullRecap = generateFullStoryRecap(game);
+
+                    io.to(game.id).emit('game-draw', {
+                        message: "In a stunning turn of events, everyone managed to eliminate themselves!",
+                        recap: fullRecap
+                    });
+                }
+            }, 15000);
+        }
+    }
+
+    function handleCreateGame(socket, playerName) {
+        const game = createGame(socket.id);
+        const newPlayer = {
+            id: socket.id,
+            name: playerName,
+            alive: true,
+            voted: false
+        };
+        game.players.push(newPlayer);
+        socket.join(game.id);
+        socket.emit('game-created', { gameCode: game.id, player: newPlayer });
+        io.to(game.id).emit('game-state-update', game);
+    }
+
+    function handleJoinGame(socket, data) {
+        const { gameCode, playerName } = data;
+        const game = games.get(gameCode);
+
+        if (game) {
+            const newPlayer = {
+                id: socket.id,
+                name: playerName,
+                alive: true,
+                voted: false
+            };
+            game.players.push(newPlayer);
+            socket.join(game.id);
+            socket.emit('player-joined', newPlayer);
+            io.to(game.id).emit('game-state-update', game);
+        } else {
+            socket.emit('error', 'Game not found!');
+        }
+    }
 
     function handleStartGame(socket) {
-        const gameId = findGameBySocket(socket.id);
-        if (!gameId) return;
-
-        const game = games[gameId];
-        if (game.players.length < 2) {
-            socket.emit('error', 'Need at least 2 players to start');
-            return;
+        const game = findGameBySocket(socket.id);
+        if (game && game.host === socket.id && game.players.length >= 2) {
+            startGame(game);
         }
-
-        game.state = 'in-progress';
-        io.to(gameId).emit('game-started', { players: game.players });
-        console.log(`Game ${gameId} started`);
     }
 
-    function handleSubmitAction(socket, { story }) {
-        const gameId = findGameBySocket(socket.id);
-        if (!gameId) return;
+    function handleSubmitAction(socket, data) {
+        const game = findGameBySocket(socket.id);
+        if (game && game.phase === 'submit') {
+            const player = game.players.find(p => p.id === socket.id);
+            if (player) {
+                // Store both the action and the item used
+                game.submissions[socket.id] = {
+                    text: data.action,
+                    item: player.currentItem
+                };
+            }
 
-        const game = games[gameId];
-        if (game.state !== 'in-progress') return;
+            // Notify all players about the submission
+            io.to(game.id).emit('player-submitted', {
+                submittedCount: Object.keys(game.submissions).length
+            });
 
-        game.stories[socket.id] = story;
-        io.to(gameId).emit('story-submitted', { playerId: socket.id, story });
-
-        // Check if all players submitted
-        if (Object.keys(game.stories).length === game.players.length) {
-            game.state = 'voting';
-            game.votes = {};
-            io.to(gameId).emit('all-stories-submitted', { stories: game.stories });
-            console.log(`All stories submitted for game ${gameId}`);
+            // Check if all alive players have submitted
+            const alivePlayers = game.players.filter(p => p.alive);
+            if (Object.keys(game.submissions).length === alivePlayers.length) {
+                // Show story resolution before voting
+                showStoryResolution(game);
+            }
         }
     }
 
     function handleSubmitVote(socket, votedPlayerId) {
-        const gameId = findGameBySocket(socket.id);
-        if (!gameId) return;
+        const game = findGameBySocket(socket.id);
+        if (game && game.phase === 'vote') {
+            game.votes[socket.id] = votedPlayerId;
 
-        const game = games[gameId];
-        if (game.state !== 'voting') return;
+            const voter = game.players.find(p => p.id === socket.id);
+            if (voter) voter.voted = true;
 
-        game.votes[socket.id] = votedPlayerId;
+            // Send vote confirmation to voter
+            socket.emit('vote-confirmed', votedPlayerId);
 
-        if (Object.keys(game.votes).length === game.players.length) {
-            game.state = 'finished';
-            io.to(gameId).emit('votes-complete', { votes: game.votes });
-            console.log(`Votes complete for game ${gameId}`);
+            // Send updated vote counts to everyone
+            const voteCounts = countVotes(game.votes);
+            io.to(game.id).emit('vote-update', voteCounts);
+
+            // Check if all alive players have voted
+            const alivePlayers = game.players.filter(p => p.alive);
+            const votedPlayers = alivePlayers.filter(p => p.voted);
+
+            if (votedPlayers.length === alivePlayers.length) {
+                endVoting(game);
+            }
         }
     }
 
     function handleDisconnect(socket) {
-        const gameId = findGameBySocket(socket.id);
-        if (!gameId) return;
+        // Find all games this socket was in
+        for (const [gameCode, game] of games) {
+            const player = game.players.find(p => p.id === socket.id);
+            if (player) {
+                const disconnectMessage = generateDisconnectMessage(player.name);
+                game.players = game.players.filter(p => p.id !== socket.id);
 
-        const game = games[gameId];
-        const playerIndex = game.players.findIndex(p => p.id === socket.id);
+                // If host left, assign new host
+                if (game.host === socket.id && game.players.length > 0) {
+                    game.host = game.players[0].id;
+                    io.to(game.id).emit('new-host', game.players[0].id);
+                }
 
-        if (playerIndex !== -1) {
-            const playerName = game.players[playerIndex].name;
-            game.players.splice(playerIndex, 1);
-            io.to(gameId).emit('player-left', { player: playerName, players: game.players });
-            console.log(`${playerName} disconnected from game ${gameId}`);
+                io.to(game.id).emit('player-disconnected', {
+                    player: player.name,
+                    message: disconnectMessage
+                });
+                io.to(game.id).emit('game-state-update', game);
+
+                // End game if not enough players
+                const alivePlayers = game.players.filter(p => p.alive);
+                if (alivePlayers.length < 2 && game.phase !== 'waiting' && game.phase !== 'ended') {
+                    game.phase = 'ended';
+                    io.to(game.id).emit('game-ended', 'Not enough players to continue');
+                }
+
+                // Remove empty games
+                if (game.players.length === 0) {
+                    games.delete(gameCode);
+                }
+            }
         }
-
-        if (game.players.length === 0) {
-            delete games[gameId];
-            console.log(`Game ${gameId} deleted (no players left)`);
-        }
-    }
-
-    function findGameBySocket(socketId) {
-        return Object.keys(games).find(gameId =>
-            games[gameId].players.some(p => p.id === socketId)
-        );
     }
 
     return {
