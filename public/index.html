@@ -9,97 +9,93 @@
 </head>
 
 <body>
-    <div id="game-container">
+    <div class="container">
         <!-- Welcome Screen -->
         <div id="welcome-screen" class="screen active">
             <h1>LOL Survival Stories</h1>
             <p>Join with your friends. Create stories. Sacrifice the weakest!</p>
 
-            <div id="game-creation">
-                <div class="input-group">
-                    <input type="text" id="player-name" placeholder="Enter your name">
-                    <button id="create-btn">Create Game</button>
-                </div>
-
-                <div class="divider">OR</div>
-
-                <div id="join-existing">
-                    <div class="input-group">
-                        <input type="text" id="game-code-input" placeholder="Enter game code">
-                        <button id="join-btn">Join Game</button>
-                    </div>
-                </div>
+            <div class="input-group">
+                <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
+                <input type="text" id="game-code-input" placeholder="Game Code (if joining)"
+                    style="text-transform: uppercase;">
             </div>
 
-            <div id="game-info" style="display: none;">
-                <p id="game-code-display"></p>
-                <div id="share-buttons">
-                    <button id="copy-link">Copy Link</button>
-                    <button id="share-qr">Show QR Code</button>
-                </div>
+            <div class="button-group">
+                <button id="create-btn">Create Game</button>
+                <button id="join-btn">Join Game</button>
+            </div>
+        </div>
+
+        <!-- Game Info Section (shown after creating/joining) -->
+        <div id="game-info" style="display: none;">
+            <h2 id="game-code-display">Game Code: </h2>
+            <div class="button-group">
+                <button id="copy-link">Copy Link</button>
+                <button id="share-qr">Share QR Code</button>
                 <div id="qr-code"></div>
-            </div>
-
-            <div id="player-list" style="display: none;">
-                <h2>Players</h2>
-                <ul id="players"></ul>
             </div>
 
             <div id="host-controls" style="display: none;">
                 <button id="start-btn">Start Game</button>
             </div>
+
+            <div id="player-list" style="display: none;">
+                <h3>Players:</h3>
+                <ul id="players"></ul>
+            </div>
         </div>
 
         <!-- Story Screen -->
         <div id="story-screen" class="screen">
-            <h2>The Story</h2>
+            <h2>The Story Continues...</h2>
             <div id="story-content"></div>
-            <div>Time left: <span id="story-time">20</span>s</div>
+            <div class="timer">Time: <span id="story-time">0</span></div>
         </div>
 
-        <!-- Submission Screen -->
+        <!-- Submit Action Screen -->
         <div id="submit-screen" class="screen">
-            <h2>Your Plan</h2>
-            <p id="submit-prompt" class="prompt"></p>
-            <textarea id="submit-input" placeholder="Describe how you'd use the item..." rows="4"></textarea>
-            <button id="submit-btn">Submit</button>
-            <div>Time left: <span id="submit-time">60</span>s</div>
-            <div id="submitted-list"></div>
+            <h2>Your Brilliant Plan</h2>
+            <p>Describe how you'll use your item to overcome the crisis!</p>
+            <textarea id="action-input" placeholder="I will use my item to..."></textarea>
+            <button id="submit-action">Submit Action</button>
+            <div id="submission-status"></div>
+            <div class="timer">Time: <span id="submit-time">0</span></div>
         </div>
 
         <!-- Voting Screen -->
         <div id="vote-screen" class="screen">
-            <h2>Time to Vote</h2>
-            <div id="vote-list"></div>
-            <div>Time left: <span id="vote-time">45</span>s</div>
+            <h2>Time to Vote!</h2>
+            <div id="voting-content"></div>
+            <div id="vote-status"></div>
+            <div class="timer">Time: <span id="vote-time">0</span></div>
         </div>
 
         <!-- Result Screen -->
         <div id="result-screen" class="screen">
-            <h2>Sacrifice Result</h2>
+            <h2>What Happened Next...</h2>
             <div id="result-content"></div>
-            <div>Next round in: <span id="result-time">15</span>s</div>
+            <div class="timer">Time: <span id="result-time">0</span></div>
         </div>
 
         <!-- Winner Screen -->
         <div id="winner-screen" class="screen">
-            <h2>Game Over</h2>
+            <h2>The Adventure Concludes</h2>
             <div id="winner-content"></div>
             <button id="play-again">Play Again</button>
         </div>
 
         <!-- Loser Screen -->
         <div id="loser-screen" class="screen">
-            <h2>Game Over</h2>
-            <div id="loser-content"></div>
+            <h2>You've Been Sacrificed!</h2>
+            <p>Better luck next time...</p>
             <button id="spectate-btn">Spectate</button>
             <button id="leave-btn">Leave Game</button>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="/socket.io/socket.io.js"></script>
-    <script type="module" src="main.js"></script>
+    <script type="module" src="client.js"></script>
 </body>
 
 </html>
