@@ -1,7 +1,9 @@
+// server.js
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
+const { initGameManager } = require('./gameManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -9,9 +11,6 @@ const io = socketIo(server);
 
 // Serve static files
 app.use(express.static('public'));
-
-// Import game manager
-const { initGameManager } = require('./gameManager');
 
 // Initialize game manager
 const gameManager = initGameManager(io);
@@ -41,11 +40,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
         gameManager.handleDisconnect(socket);
     });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port http://localhost:${PORT}`);
 });
