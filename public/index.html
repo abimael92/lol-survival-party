@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <div class="container">
+    <div id="game-container">
         <!-- Welcome Screen -->
         <div id="welcome-screen" class="screen active">
             <h1>LOL Survival Stories</h1>
@@ -28,7 +28,7 @@
         </div>
 
         <!-- Game Info Section (shown after creating/joining) -->
-        <div id="game-info" style="display: none;">
+        <div id="game-info" class="screen">
             <h2 id="game-code-display">Game Code: </h2>
             <div class="button-group">
                 <button id="copy-link">Copy Link</button>
@@ -36,11 +36,11 @@
                 <div id="qr-code"></div>
             </div>
 
-            <div id="host-controls" style="display: none;">
+            <div id="host-controls">
                 <button id="start-btn">Start Game</button>
             </div>
 
-            <div id="player-list" style="display: none;">
+            <div id="player-list">
                 <h3>Players:</h3>
                 <ul id="players"></ul>
             </div>
