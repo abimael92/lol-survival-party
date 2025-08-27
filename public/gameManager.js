@@ -162,11 +162,13 @@ export function initGameManager(socket, uiManager) {
                 uiManager.clearAllTimers();
 
                 // Simulate server moving to next phase after a brief delay
-                setTimeout(() => {
-                    // This would normally be handled by the server
-                    // For demo purposes, we'll simulate moving to voting phase
-                    showVotingPhase();
-                }, 2000);
+                if (!window.gameEnded) {
+                    setTimeout(() => {
+                        // This would normally be handled by the server
+                        // For demo purposes, we'll simulate moving to voting phase
+                        showVotingPhase();
+                    }, 2000);
+                }
             }
         });
 
@@ -265,18 +267,19 @@ export function initGameManager(socket, uiManager) {
             document.getElementById('vote-status').textContent = 'Time\'s up!';
 
             // Simulate server-side voting completion after a brief delay
-            setTimeout(() => {
-                // This would normally be handled by the server
-                // For demo purposes, we'll simulate a player being eliminated
-                const players = currentGameState.players.filter(p => p.alive);
-                if (players.length > 1) {
-                    const randomPlayer = players[Math.floor(Math.random() * players.length)];
+            if (!window.gameEnded) {
+                setTimeout(() => {
+                    // This would normally be handled by the server
+                    // For demo purposes, we'll simulate a player being eliminated
+                    const players = currentGameState.players.filter(p => p.alive);
+                    if (players.length > 1) {
+                        const randomPlayer = players[Math.floor(Math.random() * players.length)];
 
-                    const deathMessage = `${randomPlayer.name} was eliminated due to timeout!`;
-                    const continuationStory = `The story continues with the remaining survivors...`;
+                        const deathMessage = `${randomPlayer.name} was eliminated due to timeout!`;
+                        const continuationStory = `The story continues with the remaining survivors...`;
 
-                    // Show elimination screen
-                    const resultHTML = `
+                        // Show elimination screen
+                        const resultHTML = `
                 <div class="elimination-story">
                     <h3>${randomPlayer.name} has been eliminated!</h3>
                     <div class="elimination-reason">${deathMessage}</div>
@@ -284,29 +287,31 @@ export function initGameManager(socket, uiManager) {
                 </div>
             `;
 
-                    document.getElementById('result-content').innerHTML = resultHTML;
-                    uiManager.showScreen('result');
+                        document.getElementById('result-content').innerHTML = resultHTML;
+                        uiManager.showScreen('result');
 
-                    // After showing results, move to next story phase
-                    uiManager.startTimer(10, 'result-time', () => {
-                        if (players.length - 1 > 1) {
-                            // Continue with next story phase
-                            socket.emit('request-next-phase');
-                        } else {
-                            // Game over - show winner
-                            const winner = players.find(p => p.id !== randomPlayer.id);
-                            const winnerHTML = `
+                        // After showing results, move to next story phase
+                        uiManager.startTimer(10, 'result-time', () => {
+                            if (window.gameEnded) return;
+                            if (players.length - 1 > 1) {
+                                // Continue with next story phase
+                                socket.emit('request-next-phase');
+                            } else {
+                                // Game over - show winner
+                                const winner = players.find(p => p.id !== randomPlayer.id);
+                                const winnerHTML = `
                         <div class="final-chapter">
                             <h2>THE SAGA CONCLUDES</h2>
                             <div class="final-story">${winner.name} is the last survivor!</div>
                         </div>
                     `;
-                            document.getElementById('winner-content').innerHTML = winnerHTML;
-                            uiManager.showScreen('winner');
-                        }
-                    });
-                }
-            }, 2000);
+                                document.getElementById('winner-content').innerHTML = winnerHTML;
+                                uiManager.showScreen('winner');
+                            }
+                        });
+                    }
+                }, 2000);
+            }
         }
 
         // Add a function to completely disable all game interactions
