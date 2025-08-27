@@ -47,6 +47,24 @@ function countVotes(votes) {
 function initGameManager(io) {
     const games = new Map();
 
+    function safeEmit(game, event, data) {
+        if (game.phase === 'ended') {
+            console.log(`[GAME ${game.id}] Ignored emit '${event}' (game already ended)`);
+            return;
+        }
+        io.to(game.id).emit(event, data);
+    }
+
+
+    // Add this function to gameManager.js
+    function cleanupGame(game) {
+        if (game.timer) {
+            clearTimeout(game.timer);
+            game.timer = null;
+        }
+        game.phase = 'ended';   // <-- flag it as ended
+    }
+
     // Create game function
     function createGame(hostId) {
         const gameCode = uuidv4().substring(0, 6).toUpperCase();
@@ -85,7 +103,6 @@ function initGameManager(io) {
             console.log(`[GAME ${game.id}] Game already ended, cannot start`);
             return;
         }
-
 
         game.phase = 'story';
         game.roundNumber++;
@@ -140,12 +157,15 @@ function initGameManager(io) {
         });
 
         // After time for reading, move to submission phase
-        setTimeout(() => {
-            game.phase = 'submit';
-            io.to(game.id).emit('phase-change', 'submit');
+        game.timer = setTimeout(() => {
+            if (game.phase === 'ended') return;
 
-            // Set timer for submissions
+
+            game.phase = 'submit';
+            safeEmit(game, 'phase-change', 'submit');
+
             game.timer = setTimeout(() => {
+                if (game.phase === 'ended') return;
                 showStoryResolution(game);
             }, 60000);
         }, 20000);
@@ -153,6 +173,12 @@ function initGameManager(io) {
 
     // Show story resolution before voting
     function showStoryResolution(game) {
+
+        if (game.phase === 'ended') {
+            console.log(`[GAME ${game.id}] Game ended, skipping story resolution`);
+            return;
+        }
+
         debug.logPhase(game, 'Showing story resolution');
         game.phase = 'story-resolution';
 
@@ -173,13 +199,15 @@ function initGameManager(io) {
         const sillyResolution = generateSillyResolution(submissionsForResolution, game.currentStory.crisis);
 
         // Send resolution to all players
-        io.to(game.id).emit('story-resolution', {
+        safeEmit(game, 'story-resolution', {
             submissions: submissionsForResolution,
             resolution: sillyResolution
         });
 
         // After showing resolution, move to voting
         game.timer = setTimeout(() => {
+            if (game.phase === 'ended') return;
+
             debug.logPhase(game, 'Moving to voting after resolution');
             startVoting(game);
         }, 15000);
@@ -203,7 +231,7 @@ function initGameManager(io) {
             player.voted = false;
         });
 
-        io.to(game.id).emit('phase-change', 'vote');
+        safeEmit(game, 'phase-change', 'vote');
 
         // Prepare voting prompt
         const votingPrompt = "All team members contributed... but let's be honest, some plans were better than others. Who should we leave behind for the team's survival?";
@@ -221,13 +249,15 @@ function initGameManager(io) {
             }
         });
 
-        io.to(game.id).emit('submissions-to-vote-on', {
+        safeEmit(game, 'submissions-to-vote-on', {
             prompt: votingPrompt,
             submissions: submissionsForVoting
         });
 
         // Set timer for voting
         game.timer = setTimeout(() => {
+            if (game.phase === 'ended') return;
+
             endVoting(game);
         }, 45000);
     }
@@ -236,9 +266,9 @@ function initGameManager(io) {
         debug.logPhase(game, 'Ending voting');
         clearTimeout(game.timer);
 
-        // Calculate votes and eliminate player
         const voteCounts = countVotes(game.votes);
         debug.logVotes(game);
+
         let maxVotes = 0;
         let sacrificedPlayerId = null;
 
@@ -249,7 +279,6 @@ function initGameManager(io) {
             }
         }
 
-        // If there's a tie, randomly select one
         const tiedPlayers = Object.entries(voteCounts)
             .filter(([_, votes]) => votes === maxVotes)
             .map(([playerId, _]) => playerId);
@@ -276,58 +305,55 @@ function initGameManager(io) {
 
             game.phase = 'result';
 
-            // Send elimination result to all players
-            io.to(game.id).emit('player-sacrificed', {
+            safeEmit(game, 'player-sacrificed', {
                 player: sacrificedPlayer,
                 message: deathMessage,
                 continuation: continuationStory
             });
 
-            // Check if game should continue
+            // ✅ store continuation timer in game.timer
             game.timer = setTimeout(() => {
-                const remainingPlayers = game.players.filter(p => p.alive);
+                if (game.phase === 'ended') return;
+                if (game.phase === 'ended') return;
+                if (game.phase === 'ended') return;
 
-                // Only continue if there are still multiple players alive
+                const remainingPlayers = game.players.filter(p => p.alive);
+                console.log(`[GAME ${game.id}] Remaining players: ${remainingPlayers.length}`);
+
                 if (remainingPlayers.length > 1) {
                     debug.logPhase(game, 'Continuing to next round');
                     startGame(game);
-                }
-                // If only one player remains, end the game
-                else if (remainingPlayers.length === 1) {
+                } else if (remainingPlayers.length === 1) {
                     debug.logPhase(game, 'Game has a winner, ending game');
                     const winner = remainingPlayers[0];
                     const finalStory = generateFinalStoryEnding(winner, game);
                     const fullRecap = generateFullStoryRecap(game);
 
-                    game.phase = 'ended'; // Set phase to ended to prevent further gameplay
-                    debug.logPhase(game, 'Game ended with winner');
-
-                    io.to(game.id).emit('game-winner', {
+                    cleanupGame(game); // clears timer + marks ended
+                    safeEmit(game, 'game-winner', {
                         winner: winner,
                         story: finalStory,
                         recap: fullRecap
                     });
 
-                    // Remove the game from active games after a delay
                     setTimeout(() => {
                         games.delete(game.id);
-                    }, 30000); // Remove after 30 seconds
-                }
-                // If no players remain (draw)
-                else {
+                        console.log(`[GAME ${game.id}] Removed from active games`);
+                    }, 30000);
+                } else {
                     debug.logPhase(game, 'Game ended in draw');
-                    game.phase = 'ended'; // Set phase to ended
+                    cleanupGame(game);
                     const fullRecap = generateFullStoryRecap(game);
 
-                    io.to(game.id).emit('game-draw', {
+                    safeEmit(game, 'game-draw', {
                         message: "In a stunning turn of events, everyone managed to eliminate themselves!",
                         recap: fullRecap
                     });
 
-                    // Remove the game from active games after a delay
                     setTimeout(() => {
                         games.delete(game.id);
-                    }, 30000); // Remove after 30 seconds
+                        console.log(`[GAME ${game.id}] Removed from active games (draw)`);
+                    }, 30000);
                 }
             }, 15000);
         }
@@ -344,7 +370,7 @@ function initGameManager(io) {
         game.players.push(newPlayer);
         socket.join(game.id);
         socket.emit('game-created', { gameCode: game.id, player: newPlayer });
-        io.to(game.id).emit('game-state-update', game);
+        safeEmit(game, 'game-state-update', game);
     }
 
     function handleJoinGame(socket, data) {
@@ -361,7 +387,7 @@ function initGameManager(io) {
             game.players.push(newPlayer);
             socket.join(game.id);
             socket.emit('player-joined', newPlayer);
-            io.to(game.id).emit('game-state-update', game);
+            safeEmit(game, 'game-state-update', game);
         } else {
             socket.emit('error', 'Game not found!');
         }
@@ -387,7 +413,7 @@ function initGameManager(io) {
             }
 
             // Notify all players about the submission
-            io.to(game.id).emit('player-submitted', {
+            safeEmit(game, 'player-submitted', {
                 submittedCount: Object.keys(game.submissions).length
             });
 
@@ -421,7 +447,7 @@ function initGameManager(io) {
 
             // Send updated vote counts to everyone
             const voteCounts = countVotes(game.votes);
-            io.to(game.id).emit('vote-update', voteCounts);
+            safeEmit(game, 'vote-update', voteCounts);
 
             // Check if all alive players have voted
             if (checkAllPlayersVoted(game)) {
@@ -443,20 +469,20 @@ function initGameManager(io) {
                 // If host left, assign new host
                 if (game.host === socket.id && game.players.length > 0) {
                     game.host = game.players[0].id;
-                    io.to(game.id).emit('new-host', game.players[0].id);
+                    safeEmit(game, 'new-host', game.players[0].id);
                 }
 
-                io.to(game.id).emit('player-disconnected', {
+                safeEmit(game, 'player-disconnected', {
                     player: player.name,
                     message: disconnectMessage
                 });
-                io.to(game.id).emit('game-state-update', game);
+                safeEmit(game, 'game-state-update', game);
 
                 // End game if not enough players
                 const alivePlayers = game.players.filter(p => p.alive);
                 if (alivePlayers.length < 2 && game.phase !== 'waiting' && game.phase !== 'ended') {
                     game.phase = 'ended';
-                    io.to(game.id).emit('game-ended', 'Not enough players to continue');
+                    safeEmit(game, 'game-ended', 'Not enough players to continue');
                 }
 
                 // Remove empty games
@@ -466,8 +492,6 @@ function initGameManager(io) {
             }
         }
     }
-
-
 
     return {
         handleCreateGame,
