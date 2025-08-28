@@ -380,7 +380,7 @@ export function initGameManager(socket, uiManager) {
             document.getElementById('result-content').innerHTML = resultHTML;
             uiManager.showScreen('result');
             uiManager.startTimer(15, 'result-time', () => {
-                // Timer completed, server will handle next phase
+                socket.emit('request-next-phase');
             });
         });
 
