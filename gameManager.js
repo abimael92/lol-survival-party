@@ -265,10 +265,7 @@ function initGameManager(io) {
     function endVoting(game) {
         debug.logPhase(game, 'Ending voting');
         clearTimeout(game.timer);
-
         const voteCounts = countVotes(game.votes);
-        debug.logVotes(game);
-
         let maxVotes = 0;
         let sacrificedPlayerId = null;
 
@@ -279,85 +276,36 @@ function initGameManager(io) {
             }
         }
 
-        const tiedPlayers = Object.entries(voteCounts)
-            .filter(([_, votes]) => votes === maxVotes)
-            .map(([playerId, _]) => playerId);
+        // handle ties randomly
+        const tied = Object.entries(voteCounts).filter(([_, v]) => v === maxVotes).map(([p]) => p);
+        if (tied.length > 1) sacrificedPlayerId = tied[Math.floor(Math.random() * tied.length)];
 
-        if (tiedPlayers.length > 1) {
-            sacrificedPlayerId = tiedPlayers[Math.floor(Math.random() * tiedPlayers.length)];
-        }
+        const sacrificed = game.players.find(p => p.id === sacrificedPlayerId);
+        if (!sacrificed) return;
 
-        const sacrificedPlayer = game.players.find(p => p.id === sacrificedPlayerId);
-        if (sacrificedPlayer && game.submissions[sacrificedPlayer.id]) {
-            sacrificedPlayer.alive = false;
+        sacrificed.alive = false;
 
-            const deathMessage = generateDeathMessage(
-                sacrificedPlayer.name,
-                game.submissions[sacrificedPlayer.id].text,
-                game.submissions[sacrificedPlayer.id].item
-            );
+        const deathMessage = generateDeathMessage(sacrificed.name, game.submissions[sacrificed.id].text, game.submissions[sacrificed.id].item);
+        const continuationStory = generateContinuationStory(game.players.filter(p => p.alive), sacrificed, game.currentStory);
 
-            const continuationStory = generateContinuationStory(
-                game.players.filter(p => p.alive),
-                sacrificedPlayer,
-                game.currentStory
-            );
+        game.phase = 'result';
+        safeEmit(game, 'player-sacrificed', { player: sacrificed, message: deathMessage, continuation: continuationStory });
 
-            game.phase = 'result';
-
-            safeEmit(game, 'player-sacrificed', {
-                player: sacrificedPlayer,
-                message: deathMessage,
-                continuation: continuationStory
-            });
-
-            // ✅ store continuation timer in game.timer
-            game.timer = setTimeout(() => {
-                if (game.phase === 'ended') return;
-                if (game.phase === 'ended') return;
-                if (game.phase === 'ended') return;
-
-                const remainingPlayers = game.players.filter(p => p.alive);
-                console.log(`[GAME ${game.id}] Remaining players: ${remainingPlayers.length}`);
-
-                if (remainingPlayers.length > 1) {
-                    debug.logPhase(game, 'Continuing to next round');
-                    startGame(game);
-                } else if (remainingPlayers.length === 1) {
-                    debug.logPhase(game, 'Game has a winner, ending game');
-                    const winner = remainingPlayers[0];
-                    const finalStory = generateFinalStoryEnding(winner, game);
-                    const fullRecap = generateFullStoryRecap(game);
-
-                    cleanupGame(game); // clears timer + marks ended
-                    safeEmit(game, 'game-winner', {
-                        winner: winner,
-                        story: finalStory,
-                        recap: fullRecap
-                    });
-
-                    setTimeout(() => {
-                        games.delete(game.id);
-                        console.log(`[GAME ${game.id}] Removed from active games`);
-                    }, 30000);
-                } else {
-                    debug.logPhase(game, 'Game ended in draw');
-                    cleanupGame(game);
-                    const fullRecap = generateFullStoryRecap(game);
-
-                    safeEmit(game, 'game-draw', {
-                        message: "In a stunning turn of events, everyone managed to eliminate themselves!",
-                        recap: fullRecap
-                    });
-
-                    setTimeout(() => {
-                        games.delete(game.id);
-                        console.log(`[GAME ${game.id}] Removed from active games (draw)`);
-                    }, 30000);
-                }
-            }, 15000);
-        }
+        // ✅ single timer to go to next phase
+        game.timer = setTimeout(() => {
+            const alive = game.players.filter(p => p.alive);
+            if (alive.length > 1) startGame(game);           // next round
+            else if (alive.length === 1) {                    // winner
+                const winner = alive[0];
+                safeEmit(game, 'game-winner', { winner, story: generateFinalStoryEnding(winner, game), recap: generateFullStoryRecap(game) });
+                cleanupGame(game);
+            } else {                                         // draw
+                safeEmit(game, 'game-draw', { message: 'Everyone eliminated!', recap: generateFullStoryRecap(game) });
+                cleanupGame(game);
+            }
+        }, 15000); // 15s result display
     }
+
 
     function handleCreateGame(socket, playerName) {
         const game = createGame(socket.id);
