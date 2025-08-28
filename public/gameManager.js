@@ -1,95 +1,312 @@
+// gameManager.js
 export function initGameManager(socket, uiManager) {
     let playerId = null;
     let currentGameCode = null;
     let currentGameState = null;
+    let isHost = false;
 
-    function handleUIEvent(event) {
-        if (!event) return;
-        switch (event.type) {
-            case 'create-game': socket.emit('create-game', event.data); break;
-            case 'join-game': socket.emit('join-game', event.data); break;
-            case 'start-game': socket.emit('start-game'); break;
-            case 'submit-action': socket.emit('submit-action', event.data); break;
-            case 'submit-vote': socket.emit('submit-vote', event.data); break;
-            case 'copy-link':
-                if (currentGameCode) navigator.clipboard.writeText(uiManager.getGameLink(currentGameCode));
-                break;
-            case 'share-qr':
-                if (currentGameCode) uiManager.generateQRCode(uiManager.getGameLink(currentGameCode));
-                break;
+    function handleCreateGame(playerName) {
+        socket.emit('create-game', playerName);
+    }
+
+    function handleJoinGame(data) {
+        currentGameCode = data.gameCode;
+        socket.emit('join-game', data);
+    }
+
+    function handleStartGame() {
+        socket.emit('start-game');
+    }
+
+    function handleSubmitAction(data) {
+        socket.emit('submit-action', data);
+    }
+
+    function handleSubmitVote(playerId) {
+        socket.emit('submit-vote', playerId);
+    }
+
+    function handleCopyLink() {
+        if (currentGameCode) {
+            const gameLink = uiManager.getGameLink(currentGameCode);
+            navigator.clipboard.writeText(gameLink).then(() => {
+                alert('Game link copied to clipboard!');
+            }).catch(() => {
+                alert('Failed to copy link. Please manually copy the URL.');
+            });
+        } else {
+            alert('No game code available');
+        }
+    }
+
+    function handleShareQR() {
+        if (currentGameCode) {
+            const gameLink = uiManager.getGameLink(currentGameCode);
+            uiManager.generateQRCode(gameLink);
+        } else {
+            alert('No game code available');
         }
     }
 
     function setupSocketHandlers() {
-        socket.on('game-created', data => {
+        socket.on('game-created', (data) => {
             currentGameCode = data.gameCode;
             playerId = data.player.id;
+            isHost = true;
+
             document.getElementById('game-code-display').textContent = `Game Code: ${currentGameCode}`;
             uiManager.showScreen('gameInfo');
+
+            const playersList = document.getElementById('players');
+            const li = document.createElement('li');
+            li.textContent = `${data.player.name} (You) 🎮`;
+            playersList.appendChild(li);
         });
 
-        socket.on('player-joined', player => {
+        socket.on('player-joined', (player) => {
             playerId = player.id;
+
+            document.getElementById('player-name').disabled = true;
+            document.getElementById('game-code-input').disabled = true;
+            document.querySelectorAll('button').forEach(btn => {
+                if (btn.id !== 'start-btn' && btn.id !== 'copy-link' && btn.id !== 'share-qr') {
+                    btn.disabled = true;
+                }
+            });
+
             uiManager.showScreen('gameInfo');
         });
 
-        socket.on('phase-change', phase => {
-            if (phase === 'submit') uiManager.showScreen('submit');
-            else if (phase === 'vote') uiManager.showScreen('vote');
-        });
+        socket.on('game-state-update', (gameState) => {
+            currentGameState = gameState;
+            uiManager.updatePlayerList(gameState, playerId);
 
-        socket.on('submissions-to-vote-on', data => {
-            let html = `<div>${data.prompt}</div><div class="submissions-list">`;
-            for (const [pid, sub] of Object.entries(data.submissions)) {
-                html += `<div class="submission-item" data-player-id="${pid}">
-                    <div>${sub.text}</div><div>${sub.playerName} using ${sub.item}</div>
-                    <div class="vote-count">Votes: 0</div></div>`;
+            if (gameState.host === playerId) {
+                isHost = true;
+                document.getElementById('host-controls').style.display = 'block';
+                document.getElementById('start-btn').disabled = gameState.players.length < 2;
+            } else {
+                isHost = false;
+                document.getElementById('host-controls').style.display = 'none';
             }
-            html += `</div>`;
-            document.getElementById('voting-content').innerHTML = html;
+        });
+
+        socket.on('new-story', (storyData) => {
+            let storyHTML = '';
+
+            if (storyData.introduction) {
+                storyHTML += `<div class="story-intro">${storyData.introduction}</div>`;
+            }
+
+            storyHTML += `
+                <div class="story-scenario">${storyData.scenario}</div>
+                <div class="story-crisis">${storyData.crisis}</div>
+                <div class="story-item">Your Item: <strong>${storyData.playerItem}</strong></div>
+            `;
+
+            document.getElementById('story-content').innerHTML = storyHTML;
+            uiManager.showScreen('story');
+            uiManager.startTimer(20, 'story-time', () => { });
+        });
+
+        socket.on('phase-change', (phase) => {
+            if (window.gameEnded) return;
+
+            if (phase === 'submit') {
+                uiManager.showScreen('submit');
+                document.getElementById('action-input').value = '';
+                document.getElementById('submit-action').disabled = false;
+                document.getElementById('submission-status').textContent = '';
+
+                uiManager.startTimer(60, 'submit-time', () => {
+                    document.getElementById('submission-status').textContent = 'Time\'s up!';
+                });
+            } else if (phase === 'vote') {
+                uiManager.showScreen('vote');
+                uiManager.startTimer(45, 'vote-time', () => {
+                    document.getElementById('vote-status').textContent = 'Time\'s up!';
+                });
+            }
+        });
+
+        socket.on('player-submitted', (data) => {
+            document.getElementById('submission-status').textContent =
+                `${data.submittedCount || 'Some'} players have submitted...`;
+
+            const alivePlayers = currentGameState.players.filter(p => p.alive);
+            if (data.submittedCount >= alivePlayers.length) {
+                document.getElementById('submission-status').textContent =
+                    'All players have submitted! Moving to next phase...';
+                uiManager.clearAllTimers();
+            }
+        });
+
+        socket.on('submissions-to-vote-on', (data) => {
+            let votingHTML = `<div class="voting-prompt">${data.prompt}</div>`;
+
+            votingHTML += `<div class="submissions-list">`;
+            for (const [playerId, submission] of Object.entries(data.submissions)) {
+                votingHTML += `
+                    <div class="submission-item" data-player-id="${playerId}">
+                        <div class="submission-text">"${submission.text}"</div>
+                        <div class="submission-details">- ${submission.playerName} using ${submission.item}</div>
+                        <div class="vote-count">Votes: 0</div>
+                    </div>
+                `;
+            }
+            votingHTML += `</div>`;
+
+            document.getElementById('voting-content').innerHTML = votingHTML;
             uiManager.showScreen('vote');
-        });
 
-        socket.on('vote-confirmed', votedId => {
-            document.querySelectorAll('.submission-item').forEach(item => {
-                if (item.dataset.playerId === votedId) item.classList.add('voted');
+            uiManager.clearAllTimers();
+            uiManager.startTimer(45, 'vote-time', () => {
+                document.getElementById('vote-status').textContent = 'Time\'s up!';
             });
         });
 
-        socket.on('vote-update', counts => {
+        socket.on('vote-confirmed', (votedId) => {
+            document.getElementById('vote-status').textContent = 'Vote recorded!';
+
             document.querySelectorAll('.submission-item').forEach(item => {
-                const pid = item.dataset.playerId;
-                const el = item.querySelector('.vote-count');
-                if (el) el.textContent = `Votes: ${counts[pid] || 0}`;
+                if (item.dataset.playerId === votedId) {
+                    item.classList.add('voted');
+                }
+                item.style.pointerEvents = 'none';
             });
         });
 
-        socket.on('game-winner', data => {
-            document.getElementById('winner-content').innerHTML = `
-                <div>Winner: ${data.winner.name}</div>
-                <div>${data.story}</div>
-                <pre>${data.recap}</pre>
+        socket.on('vote-update', (voteCounts) => {
+            document.querySelectorAll('.submission-item').forEach(item => {
+                const playerId = item.dataset.playerId;
+                const voteCount = voteCounts[playerId] || 0;
+                const voteCountElement = item.querySelector('.vote-count');
+                if (voteCountElement) {
+                    voteCountElement.textContent = `Votes: ${voteCount}`;
+                }
+            });
+        });
+
+        socket.on('player-sacrificed', (data) => {
+            const resultHTML = `
+                <div class="elimination-story">
+                    <h3>${data.player.name} has been left behind!</h3>
+                    <div class="elimination-reason">${data.message}</div>
+                    <div class="story-continuation">${data.continuation}</div>
+                </div>
             `;
-            uiManager.showScreen('winner');
-            window.gameEnded = true;
+
+            document.getElementById('result-content').innerHTML = resultHTML;
+            uiManager.showScreen('result');
+            uiManager.startTimer(15, 'result-time', () => { });
         });
 
-        socket.on('game-draw', data => {
-            document.getElementById('winner-content').innerHTML = `
-                <div>DRAW</div><div>${data.message}</div><pre>${data.recap}</pre>
+        socket.on('game-winner', (data) => {
+            const winnerHTML = `
+                <div class="final-chapter">
+                    <h2>THE SAGA CONCLUDES</h2>
+                    <div class="final-story">${data.story}</div>
+                </div>
+                <div class="full-recap">
+                    <h3>COMPLETE STORY</h3>
+                    <pre>${data.recap}</pre>
+                </div>
             `;
+
+            document.getElementById('winner-content').innerHTML = winnerHTML;
             uiManager.showScreen('winner');
+            uiManager.clearAllTimers();
             window.gameEnded = true;
         });
 
-        socket.on('game-ended', msg => {
-            document.getElementById('winner-content').innerHTML = `<div>${msg}</div>`;
+        socket.on('game-draw', (data) => {
+            const drawHTML = `
+                <div class="final-chapter">
+                    <h2>AN UNEXPECTED CONCLUSION</h2>
+                    <div class="final-story">${data.message}</div>
+                </div>
+                <div class="full-recap">
+                    <h3>COMPLETE STORY</h3>
+                    <pre>${data.recap}</pre>
+                </div>
+            `;
+
+            document.getElementById('winner-content').innerHTML = drawHTML;
             uiManager.showScreen('winner');
+            uiManager.clearAllTimers();
             window.gameEnded = true;
         });
 
-        socket.on('player-disconnected', data => uiManager.showDisconnectNotification(data));
+        socket.on('game-ended', (message) => {
+            const endedHTML = `
+                <div class="final-chapter">
+                    <h2>GAME ENDED</h2>
+                    <div class="final-story">${message}</div>
+                </div>
+                <button id="return-to-lobby">Return to Lobby</button>
+            `;
+
+            document.getElementById('winner-content').innerHTML = endedHTML;
+            uiManager.showScreen('winner');
+            uiManager.clearAllTimers();
+            window.gameEnded = true;
+
+            document.getElementById('return-to-lobby').addEventListener('click', () => {
+                location.reload();
+            });
+        });
+
+        socket.on('player-disconnected', (data) => {
+            uiManager.showDisconnectNotification(data);
+        });
+
+        socket.on('error', (message) => {
+            alert(`Error: ${message}`);
+        });
+
+        socket.on('new-host', (hostId) => {
+            if (hostId === playerId) {
+                document.getElementById('host-controls').style.display = 'block';
+                isHost = true;
+                alert('You are now the host!');
+            }
+        });
     }
 
-    return { setupSocketHandlers, handleUIEvent, getPlayerId: () => playerId, getGameCode: () => currentGameCode, getGameState: () => currentGameState };
+    function handleUIEvent(event) {
+        if (!event) return;
+
+        switch (event.type) {
+            case 'create-game':
+                handleCreateGame(event.data);
+                break;
+            case 'join-game':
+                handleJoinGame(event.data);
+                break;
+            case 'start-game':
+                handleStartGame();
+                break;
+            case 'submit-action':
+                handleSubmitAction(event.data);
+                break;
+            case 'submit-vote':
+                handleSubmitVote(event.data);
+                break;
+            case 'copy-link':
+                handleCopyLink();
+                break;
+            case 'share-qr':
+                handleShareQR();
+                break;
+        }
+    }
+
+    return {
+        setupSocketHandlers,
+        handleUIEvent,
+        getPlayerId: () => playerId,
+        getGameCode: () => currentGameCode,
+        getGameState: () => currentGameState,
+        isHost: () => isHost
+    };
 }
