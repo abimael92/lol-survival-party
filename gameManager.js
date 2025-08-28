@@ -112,8 +112,8 @@ function initGameManager(io) {
             game.timer = setTimeout(() => {
                 if (game.phase === 'ended') return;
                 showStoryResolution(game);
-            }, 60000);
-        }, 20000);
+            }, 10000); // 60000
+        }, 1000); // 20000
     }
 
     function showStoryResolution(game) {
@@ -210,35 +210,35 @@ function initGameManager(io) {
             console.log(`[GAME ${game.id}] Remaining players after sacrifice: ${remainingPlayers.length}`);
 
             if (remainingPlayers.length > 1) {
-                debug.logPhase(game, 'Continuing to next round');
                 game.timer = setTimeout(() => {
                     if (game.phase === 'ended') return;
                     startGame(game);
                 }, 15000);
             } else if (remainingPlayers.length === 1) {
-                debug.logPhase(game, 'Game has a winner, ending game immediately');
                 const winner = remainingPlayers[0];
                 const finalStory = generateFinalStoryEnding(winner, game);
                 const fullRecap = generateFullStoryRecap(game);
 
-                cleanupGame(game);
                 safeEmit(game, 'game-winner', {
                     winner: winner,
                     story: finalStory,
                     recap: fullRecap
                 });
+
+                // Cleanup AFTER short delay so clients can receive it
+                setTimeout(() => {
+                    cleanupGame(game); // now sets phase = 'ended' and clears timers
+                    games.delete(game.id);
+                }, 1000); // 1s is enough
             } else {
-                debug.logPhase(game, 'Game ended in draw');
                 cleanupGame(game);
                 const fullRecap = generateFullStoryRecap(game);
-
-                safeEmit(game, 'game-draw', {
-                    message: "In a stunning turn of events, everyone managed to eliminate themselves!",
-                    recap: fullRecap
-                });
+                safeEmit(game, 'game-draw', { message: "Everyone eliminated themselves!", recap: fullRecap });
+                setTimeout(() => games.delete(game.id), 30000);
             }
         }
     }
+
 
     function handleCreateGame(socket, playerName) {
         const game = createGame(socket.id);
@@ -457,8 +457,8 @@ function initGameManager(io) {
             game.timer = setTimeout(() => {
                 if (game.phase === 'ended') return;
                 showStoryResolution(game);
-            }, 60000);
-        }, 20000);
+            }, 10000); // 60000
+        }, 1000); // 20000
     }
 
     function showStoryResolution(game) {
@@ -493,7 +493,7 @@ function initGameManager(io) {
             if (game.phase === 'ended') return;
             debug.logPhase(game, 'Moving to voting after resolution');
             startVoting(game);
-        }, 15000);
+        }, 5000); // 15000
     }
 
     function startVoting(game) {
@@ -535,7 +535,7 @@ function initGameManager(io) {
         game.timer = setTimeout(() => {
             if (game.phase === 'ended') return;
             endVoting(game);
-        }, 45000);
+        }, 5000); // 45000
     }
 
     function endVoting(game) {
@@ -626,9 +626,9 @@ function initGameManager(io) {
                     setTimeout(() => {
                         games.delete(game.id);
                         console.log(`[GAME ${game.id}] Removed from active games (draw)`);
-                    }, 30000);
+                    }, 10000); // 30000
                 }
-            }, 15000);
+            }, 5000); // 15000
         }
     }
 
