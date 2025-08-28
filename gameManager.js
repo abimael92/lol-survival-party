@@ -1,4 +1,3 @@
-// gameManager.js (Server)
 const { v4: uuidv4 } = require('uuid');
 const {
     getRandomStory,
@@ -77,9 +76,8 @@ function initGameManager(io) {
         shuffleArray(game.availableItems);
 
         game.players.forEach(p => {
-            if (p.alive) {
+            if (p.alive)
                 p.currentItem = game.availableItems.pop() || game.currentStory.items[Math.floor(Math.random() * game.currentStory.items.length)];
-            }
             p.voted = false;
         });
 
@@ -102,14 +100,13 @@ function initGameManager(io) {
             safeEmit(game, 'phase-change', 'submit');
             game.timer = setTimeout(() => {
                 if (game.phase !== 'ended') showStoryResolution(game);
-            }, 60000);
-        }, 20000);
+            }, 30000); // halved from 60000
+        }, 10000); // halved from 20000
     }
 
     function showStoryResolution(game) {
         if (game.phase === 'ended') return;
         game.phase = 'story-resolution';
-
         const submissionsForResolution = {};
         Object.keys(game.submissions).forEach(pid => {
             const player = game.players.find(p => p.id === pid);
@@ -119,13 +116,9 @@ function initGameManager(io) {
                 playerName: player.name
             };
         });
-
         const sillyResolution = generateSillyResolution(submissionsForResolution, game.currentStory.crisis);
         safeEmit(game, 'story-resolution', { submissions: submissionsForResolution, resolution: sillyResolution });
-
-        game.timer = setTimeout(() => {
-            if (game.phase !== 'ended') startVoting(game);
-        }, 15000);
+        game.timer = setTimeout(() => { if (game.phase !== 'ended') startVoting(game); }, 7500); // halved
     }
 
     function startVoting(game) {
@@ -149,17 +142,15 @@ function initGameManager(io) {
             submissions: submissionsForVoting
         });
 
-        game.timer = setTimeout(() => { if (game.phase !== 'ended') endVoting(game); }, 45000);
+        game.timer = setTimeout(() => { if (game.phase !== 'ended') endVoting(game); }, 22500); // halved
     }
 
     function endVoting(game) {
         clearTimeout(game.timer);
         const voteCounts = countVotes(game.votes);
-
         let maxVotes = 0, sacrificedId = null;
-        for (const [pid, v] of Object.entries(voteCounts)) {
+        for (const [pid, v] of Object.entries(voteCounts))
             if (v > maxVotes) { maxVotes = v; sacrificedId = pid; }
-        }
 
         const tied = Object.entries(voteCounts).filter(([_, v]) => v === maxVotes).map(([p]) => p);
         if (tied.length > 1) sacrificedId = tied[Math.floor(Math.random() * tied.length)];
@@ -169,8 +160,9 @@ function initGameManager(io) {
 
         const alivePlayers = game.players.filter(p => p.alive);
 
-        if (alivePlayers.length > 1) startGame(game);
-        else if (alivePlayers.length === 1) {
+        if (alivePlayers.length > 1) {
+            startGame(game);
+        } else if (alivePlayers.length === 1) {
             const winner = alivePlayers[0];
             safeEmit(game, 'game-winner', {
                 winner,
