@@ -277,6 +277,21 @@ export function initUIManager() {
         });
     }
 
+    function showWinner(winnerData) {
+        disableGameInteractions(); // stop all other buttons
+        const winnerScreen = screens.winner;
+
+        // Populate winner info
+        const winnerNameEl = winnerScreen.querySelector('#winner-name');
+        const winnerStoryEl = winnerScreen.querySelector('#winner-story');
+
+        if (winnerNameEl) winnerNameEl.textContent = winnerData.winner.name;
+        if (winnerStoryEl) winnerStoryEl.textContent = winnerData.story;
+
+        showScreen('winner');
+    }
+
+
     return {
         showScreen,
         startTimer,
@@ -287,6 +302,7 @@ export function initUIManager() {
         updatePlayerList,
         initUI,
         getGameLink,
-        screens
+        screens,
+        showWinner
     };
 }
