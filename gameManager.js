@@ -25,7 +25,7 @@ function countVotes(votes) {
     return counts;
 }
 
-function initGameManager(io, socket) {
+function initGameManager(io) {
     const games = new Map();
 
     function safeEmit(game, event, data) {
@@ -77,8 +77,9 @@ function initGameManager(io, socket) {
         shuffleArray(game.availableItems);
 
         game.players.forEach(p => {
-            if (p.alive)
+            if (p.alive) {
                 p.currentItem = game.availableItems.pop() || game.currentStory.items[Math.floor(Math.random() * game.currentStory.items.length)];
+            }
             p.voted = false;
         });
 
@@ -101,8 +102,8 @@ function initGameManager(io, socket) {
             safeEmit(game, 'phase-change', 'submit');
             game.timer = setTimeout(() => {
                 if (game.phase !== 'ended') showStoryResolution(game);
-            }, 30000);
-        }, 10000);
+            }, 60000);
+        }, 20000);
     }
 
     function showStoryResolution(game) {
@@ -124,7 +125,7 @@ function initGameManager(io, socket) {
 
         game.timer = setTimeout(() => {
             if (game.phase !== 'ended') startVoting(game);
-        }, 10000);
+        }, 15000);
     }
 
     function startVoting(game) {
@@ -154,6 +155,7 @@ function initGameManager(io, socket) {
     function endVoting(game) {
         clearTimeout(game.timer);
         const voteCounts = countVotes(game.votes);
+
         let maxVotes = 0, sacrificedId = null;
         for (const [pid, v] of Object.entries(voteCounts)) {
             if (v > maxVotes) { maxVotes = v; sacrificedId = pid; }
@@ -167,9 +169,8 @@ function initGameManager(io, socket) {
 
         const alivePlayers = game.players.filter(p => p.alive);
 
-        if (alivePlayers.length > 1) {
-            startGame(game);
-        } else if (alivePlayers.length === 1) {
+        if (alivePlayers.length > 1) startGame(game);
+        else if (alivePlayers.length === 1) {
             const winner = alivePlayers[0];
             safeEmit(game, 'game-winner', {
                 winner,
@@ -185,7 +186,6 @@ function initGameManager(io, socket) {
             cleanupGame(game);
         }
     }
-
 
     function handleCreateGame(socket, playerName) {
         const game = createGame(socket.id);
@@ -247,20 +247,6 @@ function initGameManager(io, socket) {
             if (!game.players.length) games.delete(code);
         }
     }
-
-    // Listen for force winner
-    socket.on('force-winner', (winnerId) => {
-        const game = findGameBySocket(socket.id);
-        if (!game || game.phase === 'ended') return;
-        const winner = game.players.find(p => p.id === winnerId);
-        if (!winner) return;
-        safeEmit(game, 'game-winner', {
-            winner,
-            story: generateFinalStoryEnding(winner, game),
-            recap: generateFullStoryRecap(game)
-        });
-        cleanupGame(game);
-    });
 
     return {
         handleCreateGame,
