@@ -206,6 +206,16 @@ body {
     margin-top: 1rem;
     font-style: italic;
   }
+
+  .submission-item label {
+    display: block;
+    cursor: pointer;
+    width: 100%;
+}
+
+.submission-item input[type="radio"] {
+    margin-right: 10px;
+}
   
   /* ===================
      Voting
