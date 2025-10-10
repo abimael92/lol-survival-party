@@ -14,6 +14,7 @@ export function initUIEvents(socket, gameCodeRef) {
                     alert('Please enter your name and game code!');
                     return;
                 }
+                console.log('Joining game:', event.data.gameCode, 'as:', event.data.playerName);
                 socket.emit('join-game', {
                     playerName: event.data.playerName,
                     gameCode: event.data.gameCode
