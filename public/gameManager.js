@@ -10,7 +10,7 @@ export function initGameManager(socket, uiManager) {
 
     const { setPhase } = initGamePhases(uiManager, socket);
     const { setupSocketHandlers } = initSocketHandlers(socket, uiManager, setPhase, playerIdRef, currentGameCodeRef, isHostRef, currentGameStateRef);
-    const { handleUIEvent } = initUIEvents(socket, playerIdRef, currentGameCodeRef);
+    const { handleUIEvent } = initUIEvents(socket, currentGameCodeRef); // FIXED: Pass currentGameCodeRef instead of playerIdRef
 
     return {
         setupSocketHandlers,

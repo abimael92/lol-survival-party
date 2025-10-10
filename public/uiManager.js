@@ -51,13 +51,25 @@ export function initUIManager() {
         ul.innerHTML = '';
         gameState.players.forEach(p => {
             const li = document.createElement('li');
-            li.textContent = p.name + (p.id === currentPlayerId ? ' (You) 🎮' : '');
+
+            // Create player name with "You" indicator
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = p.name + (p.id === currentPlayerId ? ' (You) 🎮' : '');
+            li.appendChild(nameSpan);
+
+            // Add host badge if this player is host
             if (p.id === gameState.host) {
                 const badge = document.createElement('span');
-                badge.textContent = 'HOST';
+                badge.textContent = ' 👑 HOST';
                 badge.className = 'host-badge';
+                badge.style.marginLeft = '10px';
+                badge.style.background = '#e94560';
+                badge.style.padding = '2px 8px';
+                badge.style.borderRadius = '10px';
+                badge.style.fontSize = '0.8em';
                 li.appendChild(badge);
             }
+
             ul.appendChild(li);
         });
     }

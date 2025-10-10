@@ -401,3 +401,63 @@ body {
     }
   }
   
+  /* ===================
+   New Styles for Fixes
+=================== */
+.player-name-voting {
+    font-weight: bold;
+    color: #e94560;
+    margin-bottom: 5px;
+    font-size: 1.1em;
+}
+
+.submissions-review {
+    margin: 1rem 0;
+}
+
+.submission-review-item {
+    padding: 15px;
+    margin: 10px 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #e94560;
+}
+
+.waiting-message {
+    text-align: center;
+    padding: 2rem;
+}
+
+.spinner {
+    font-size: 3rem;
+    margin: 1rem 0;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.story-resolution, .voting-results {
+    padding: 1rem;
+}
+
+.resolution-text, .sense-of-relief, .sacrifice-reason, .elimination-reason, .story-continuation {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    line-height: 1.6;
+}
+
+.eliminated-player {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #e94560;
+    text-align: center;
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(233, 69, 96, 0.2);
+    border-radius: 8px;
+}
