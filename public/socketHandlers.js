@@ -22,11 +22,21 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
             DOM.playersList().appendChild(li);
         });
 
-        socket.on('player-joined', (player) => {
-            playerIdRef.value = player.id;
+        socket.on('player-joined', (data) => {
+            console.log('Player joined:', data);
+            playerIdRef.value = data.player.id;
+            gameCodeRef.value = data.gameCode; // ADD THIS LINE - Set the game code
+            isHostRef.value = false; // ADD THIS LINE - Player joining is not host
+
+            DOM.gameCodeDisplay().textContent = `Game Code: ${data.gameCode}`; // ADD THIS LINE
             uiManager.showScreen('game-info');
             DOM.playerName().disabled = true;
             DOM.gameCodeInput().disabled = true;
+
+            // ADD THIS SECTION - Add player to list
+            const li = document.createElement('li');
+            li.textContent = `${data.player.name} (You) 🎮`;
+            DOM.playersList().appendChild(li);
         });
 
         socket.on('game-state-update', (gameState) => {
