@@ -13,7 +13,8 @@ export function getButtonData(button) {
         case 'submit-action':
             return { action: DOM.actionInput().value.trim() };
         case 'submit-vote':
-            return { vote: document.querySelector('input[name="vote"]:checked')?.value };
+            const selectedVote = document.querySelector('input[name="vote"]:checked');
+            return { vote: selectedVote ? selectedVote.value : null };
         default:
             return null;
     }
