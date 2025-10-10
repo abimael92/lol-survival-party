@@ -22,22 +22,22 @@
             </div>
 
             <div class="button-group">
-                <button id="create-btn">Create Game</button>
-                <button id="join-btn">Join Game</button>
+                <button id="create-btn" data-action="create-game">Create Game</button>
+                <button id="join-btn" data-action="join-game">Join Game</button>
             </div>
         </div>
 
-        <!-- Game Info Section (shown after creating/joining) -->
-        <div id="game-info" class="screen">
+        <!-- Game Info Section -->
+        <div id="game-info-screen" class="screen">
             <h2 id="game-code-display">Game Code: </h2>
             <div class="button-group">
-                <button id="copy-link">Copy Link</button>
-                <button id="share-qr">Share QR Code</button>
+                <button id="copy-link" data-action="copy-link">Copy Link</button>
+                <button id="share-qr" data-action="share-qr">Share QR Code</button>
                 <div id="qr-code"></div>
             </div>
 
             <div id="host-controls">
-                <button id="start-btn">Start Game</button>
+                <button id="start-btn" data-action="start-game">Start Game</button>
             </div>
 
             <div id="player-list">
@@ -58,7 +58,7 @@
             <h2>Your Brilliant Plan</h2>
             <p>Describe how you'll use your item to overcome the crisis!</p>
             <textarea id="action-input" placeholder="I will use my item to..."></textarea>
-            <button id="submit-action">Submit Action</button>
+            <button id="submit-action" data-action="submit-action">Submit Action</button>
             <div id="submission-status"></div>
             <div class="timer">Time: <span id="submit-time">0</span></div>
         </div>
@@ -69,6 +69,7 @@
             <div id="voting-content"></div>
             <div id="vote-status"></div>
             <div class="timer">Time: <span id="vote-time">0</span></div>
+            <button id="submit-vote" data-action="submit-vote">Vote</button>
         </div>
 
         <!-- Result Screen -->
@@ -82,19 +83,20 @@
         <div id="winner-screen" class="screen">
             <h2>The Adventure Concludes</h2>
             <div id="winner-content"></div>
-            <button id="play-again">Play Again</button>
+            <button id="play-again" data-action="play-again">Play Again</button>
         </div>
 
         <!-- Loser Screen -->
         <div id="loser-screen" class="screen">
             <h2>You've Been Sacrificed!</h2>
             <p>Better luck next time...</p>
-            <button id="spectate-btn">Spectate</button>
-            <button id="leave-btn">Leave Game</button>
+            <button id="spectate-btn" data-action="spectate">Spectate</button>
+            <button id="leave-btn" data-action="leave-game">Leave Game</button>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    <!-- <script src="https://unpkg.com/xstate@4.38.3/dist/xstate.js"></script> -->
     <script type="module" src="client.js"></script>
 </body>
 
