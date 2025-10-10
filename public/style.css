@@ -461,3 +461,63 @@ body {
     background: rgba(233, 69, 96, 0.2);
     border-radius: 8px;
 }
+
+/* ===================
+   Enhanced Voting Styles
+=================== */
+.player-name-voting {
+    font-weight: bold;
+    color: #e94560;
+    margin-bottom: 8px;
+    font-size: 1.2em;
+    text-align: left;
+}
+
+.submission-item {
+    padding: 15px;
+    margin: 10px 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    text-align: left;
+}
+
+.submission-item label {
+    display: block;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+}
+
+.submission-item input[type="radio"] {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+.submission-text {
+    font-style: italic;
+    margin: 8px 0;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+.submission-details {
+    font-size: 0.9em;
+    color: #ccc;
+    margin-top: 5px;
+}
+
+.vote-count {
+    font-size: 1em;
+    color: #e94560;
+    margin-top: 8px;
+    font-weight: bold;
+    text-align: center;
+    padding: 5px;
+    background: rgba(233, 69, 96, 0.1);
+    border-radius: 4px;
+}
