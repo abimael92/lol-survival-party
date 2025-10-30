@@ -4,6 +4,10 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
     function setupSocketHandlers() {
         socket.on('game-created', (data) => {
             console.log('Game created:', data);
+            console.log('Player object:', data.player);
+            console.log('Player name:', data.player?.name);
+            console.log('Player type:', typeof data.player);
+
             gameCodeRef.value = data.gameCode;  // Fixed: was currentGameCodeRef
             playerIdRef.value = data.player.id;
             isHostRef.value = true;
@@ -17,26 +21,26 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
                 new QRCode(document.getElementById('qr-code'), gameLink);
             }
 
-            const li = document.createElement('li');
-            li.textContent = `${data.player.name} (You) 🎮`;
-            DOM.playersList().appendChild(li);
+            // ADD THIS: Trigger immediate player list update
+            uiManager.updatePlayerList({ players: [data.player], host: data.player.id }, playerIdRef.value);
         });
 
         socket.on('player-joined', (data) => {
             console.log('Player joined:', data);
-            playerIdRef.value = data.player.id;
-            gameCodeRef.value = data.gameCode; // ADD THIS LINE - Set the game code
-            isHostRef.value = false; // ADD THIS LINE - Player joining is not host
+            console.log('Player object:', data.player);
+            console.log('Player name:', data.player?.name);
 
-            DOM.gameCodeDisplay().textContent = `Game Code: ${data.gameCode}`; // ADD THIS LINE
+            playerIdRef.value = data.player.id;
+            gameCodeRef.value = data.gameCode;
+            isHostRef.value = false;
+
+            DOM.gameCodeDisplay().textContent = `Game Code: ${data.gameCode}`;
             uiManager.showScreen('game-info');
             DOM.playerName().disabled = true;
             DOM.gameCodeInput().disabled = true;
 
-            // ADD THIS SECTION - Add player to list
-            const li = document.createElement('li');
-            li.textContent = `${data.player.name} (You) 🎮`;
-            DOM.playersList().appendChild(li);
+            uiManager.updatePlayerList({ players: [data.player], host: data.gameState?.host }, playerIdRef.value);
+
         });
 
         socket.on('game-state-update', (gameState) => {
