@@ -64,7 +64,7 @@ export function initUIManager() {
 
             // Create player name with "You" indicator
             const nameSpan = document.createElement('span');
-            nameSpan.textContent = p.name + (p.id === currentPlayerId ? ' (You) ' : '');
+            nameSpan.textContent = p.name + (p.id === currentPlayerId ? ' (You) ' : '(Guest)');
             li.appendChild(nameSpan);
 
             // Add host badge if this player is host
