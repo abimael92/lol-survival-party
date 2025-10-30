@@ -21,7 +21,6 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
                 new QRCode(document.getElementById('qr-code'), gameLink);
             }
 
-            // ADD THIS: Trigger immediate player list update
             uiManager.updatePlayerList({ players: [data.player], host: data.player.id }, playerIdRef.value);
         });
 
@@ -32,6 +31,7 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
 
             playerIdRef.value = data.player.id;
             gameCodeRef.value = data.gameCode;
+
             isHostRef.value = false;
 
             DOM.gameCodeDisplay().textContent = `Game Code: ${data.gameCode}`;
@@ -39,7 +39,7 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
             DOM.playerName().disabled = true;
             DOM.gameCodeInput().disabled = true;
 
-            uiManager.updatePlayerList({ players: [data.player], host: data.gameState?.host }, playerIdRef.value);
+            console.log('Waiting for game state update...');
 
         });
 
@@ -74,11 +74,21 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
         socket.on('player-submitted', (data) => {
             DOM.submissionStatus().textContent =
                 `${data.submittedCount || 'Some'} players have submitted...`;
+
+            if (data.confirmed) {
+                DOM.submitActionBtn().disabled = true;
+                DOM.actionInput().disabled = true;
+            }
         });
 
-        // NEW: Show all submissions before voting
+        socket.on('vote-confirmed', () => {
+            DOM.voteStatus().textContent = 'Vote recorded! Waiting for others...';
+            DOM.submitVoteBtn().disabled = true; // Disable after server confirms
+        });
+
         socket.on('all-submissions-received', (data) => {
             console.log('All submissions received:', data);
+
             let reviewHTML = `<h3>All Plans Submitted:</h3><div class="submissions-review">`;
 
             // FIX: Handle both array and object formats
@@ -99,69 +109,64 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
                 `;
             });
 
-            reviewHTML += `</div>`;
+            reviewHTML += `</div><p>Story resolution in: <span id="submissions-timer">30</span> seconds</p>`;
+
             DOM.resultContent().innerHTML = reviewHTML;
+
             setPhase('result');
+
+            uiManager.clearTimer('result-time');
+
+            uiManager.startTimer(20, 'submissions-timer', () => {
+                console.log('Submissions timer completed');
+            });
         });
 
-        // NEW: Show story resolution
         socket.on('story-resolution', (data) => {
             console.log('Story resolution:', data);
+
             let resolutionHTML = `
                 <div class="story-resolution">
                     <h3>What Actually Happened...</h3>
                     <div class="resolution-text">${data.resolution}</div>
-                    <div class="sense-of-relief">${data.relief}</div>
-                    <div class="sacrifice-reason">${data.sacrificeReason}</div>
                 </div>
+
+                <div class="timer">Voting starts in: <span id="resolution-timer">20</span> seconds</div>
             `;
+
             DOM.resultContent().innerHTML = resolutionHTML;
-            // Stay on result screen for this
+            setPhase('result');
+
+            uiManager.clearTimer('submissions-timer');
+            uiManager.clearTimer('result-time');
+
+            uiManager.startTimer(20, 'resolution-timer', () => {
+                console.log('Resolution timer completed');
+            });
+
         });
 
-        // FIXED: Voting section with proper data handling
         socket.on('submissions-to-vote-on', (data) => {
-            console.log('Submissions to vote on - RAW DATA:', data);
-
-            // FIX: Handle different data structures
-            let submissions = data.submissions;
-            if (!submissions) {
-                console.error('No submissions data received');
-                return;
-            }
-
-            // Convert to array if it's an object
-            if (!Array.isArray(submissions)) {
-                submissions = Object.entries(submissions).map(([playerId, submission]) => ({
-                    playerId,
-                    ...submission
-                }));
-            }
-
-            console.log('Processed submissions for voting:', submissions);
+            console.log('Submissions to vote on:', data);
 
             const votingHTML = `
                 <div class="voting-prompt">${data.prompt || 'Who should be sacrificed?'}</div>
-                <div class="submissions-list">
-                    ${submissions.map((submission, index) => {
-                // FIX: Handle different data structures safely
-                const playerId = submission.playerId || submission.id || `player-${index}`;
-                const playerName = submission.playerName || submission.name || 'Unknown Player';
-                const text = submission.text || submission.action || 'No action submitted';
-                const item = submission.item || submission.playerItem || 'Unknown item';
 
-                return `
-                            <div class="submission-item" data-player-id="${playerId}">
-                                <input type="radio" name="vote" value="${playerId}" id="vote-${playerId}">
-                                <label for="vote-${playerId}">
-                                    <div class="player-name-voting">${playerName}</div>
-                                    <div class="submission-text">"${text}"</div>
-                                    <div class="submission-details">using ${item}</div>
-                                </label>
-                                <div class="vote-count">Votes: <span id="votes-${playerId}">0</span></div>
-                            </div>
-                        `;
-            }).join('')}
+                <div class="submissions-list">
+                    ${Object.entries(data.submissions).map(([pid, s]) => `
+                        <div class="submission-item" data-player-id="${pid}">
+
+                            <input type="radio" name="vote" value="${pid}" id="vote-${pid}">
+
+                            <label for="vote-${pid}">
+                                <div class="player-name-voting">${s.playerName}</div>
+                                <div class="submission-text">"${s.text}"</div>
+                                <div class="submission-details">using ${s.item}</div>
+                            </label>
+
+                            <div class="vote-count">Votes: <span id="votes-${pid}">0</span></div>
+                        </div>
+                    `).join('')}
                 </div>
             `;
 
@@ -187,9 +192,15 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
         // NEW: Update vote counts in real-time
         socket.on('vote-update', (data) => {
             console.log('Vote update:', data);
-            if (data.votes) {
+            console.log('Vote counts:', data.votes);
+
+            if (data.votes && typeof data.votes === 'object') {
+
                 Object.entries(data.votes).forEach(([playerId, voteCount]) => {
+                    console.log('Vote entries:', playerId, voteCount);
+
                     const voteElement = document.getElementById(`votes-${playerId}`);
+
                     if (voteElement) {
                         voteElement.textContent = voteCount;
                     }
@@ -226,11 +237,27 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
         });
 
         socket.on('game-winner', (data) => {
-            DOM.winnerContent().innerHTML = `<div class="final-story">${data.story}</div>`;
+            let winnerHTML = `
+                <div class="final-story">
+                    <h2>${data.winner.name} Wins! </h2>
+                    <div class="victory-message">${data.story}</div>
+                </div>
+            `;
+
+            if (data.fullRecap) {
+                winnerHTML += `
+                    <div class="full-recap">
+                        ${data.fullRecap}
+                    </div>
+                `;
+            } else {
+                console.log('No full recap data received from server');
+            }
+
+            DOM.winnerContent().innerHTML = winnerHTML;
             uiManager.showScreen('winner');
         });
 
-        // NEW: Show waiting screen
         socket.on('waiting-for-players', (data) => {
             console.log('Waiting for players:', data);
             DOM.resultContent().innerHTML = `
