@@ -49,8 +49,18 @@ export function initUIManager() {
     function updatePlayerList(gameState, currentPlayerId) {
         const ul = document.getElementById('players');
         ul.innerHTML = '';
+
+        if (!gameState || !gameState.players) return;
+
         gameState.players.forEach(p => {
             const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.justifyContent = 'space-between';
+            li.style.alignItems = 'center';
+            li.style.padding = '8px';
+            li.style.margin = '5px 0';
+            li.style.background = 'rgba(255, 255, 255, 0.1)';
+            li.style.borderRadius = '5px';
 
             // Create player name with "You" indicator
             const nameSpan = document.createElement('span');
@@ -64,10 +74,16 @@ export function initUIManager() {
                 badge.className = 'host-badge';
                 badge.style.marginLeft = '10px';
                 badge.style.background = '#e94560';
+                badge.style.color = 'white';
                 badge.style.padding = '2px 8px';
                 badge.style.borderRadius = '10px';
                 badge.style.fontSize = '0.8em';
+                badge.style.fontWeight = 'bold';
+
+                li.appendChild(nameSpan);
                 li.appendChild(badge);
+            } else {
+                li.appendChild(nameSpan);
             }
 
             ul.appendChild(li);

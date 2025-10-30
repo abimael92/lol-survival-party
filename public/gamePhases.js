@@ -51,6 +51,15 @@ export function initGamePhases(uiManager, socket) {
                 });
                 break;
 
+            case 'review':
+                // Show all submissions review
+                uiManager.showScreen('result');
+                uiManager.startTimer(10, 'result-time', () => {
+                    // Move to voting after review
+                    socket.emit('request-voting-phase');
+                });
+                break;
+
             case 'vote':
                 uiManager.showScreen('vote');
                 DOM.voteStatus().textContent = '';

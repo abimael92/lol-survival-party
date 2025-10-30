@@ -81,12 +81,20 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
             console.log('All submissions received:', data);
             let reviewHTML = `<h3>All Plans Submitted:</h3><div class="submissions-review">`;
 
-            data.submissions.forEach((submission, index) => {
+            // FIX: Handle both array and object formats
+            const submissions = Array.isArray(data.submissions) ? data.submissions : Object.values(data.submissions);
+
+            submissions.forEach((submission, index) => {
+                // FIX: Handle different data structures
+                const playerName = submission.playerName || submission.name || 'Unknown Player';
+                const text = submission.text || submission.action || 'No action submitted';
+                const item = submission.item || submission.playerItem || 'Unknown item';
+
                 reviewHTML += `
                     <div class="submission-review-item">
-                        <div class="player-name">${submission.playerName}</div>
-                        <div class="submission-text">"${submission.text}"</div>
-                        <div class="item-used">Using: ${submission.item}</div>
+                        <div class="player-name">${playerName}</div>
+                        <div class="submission-text">"${text}"</div>
+                        <div class="item-used">Using: ${item}</div>
                     </div>
                 `;
             });
@@ -111,25 +119,52 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
             // Stay on result screen for this
         });
 
-        // FIXED: Voting section with player names and vote counts
+        // FIXED: Voting section with proper data handling
         socket.on('submissions-to-vote-on', (data) => {
-            console.log('Submissions to vote on:', data);
+            console.log('Submissions to vote on - RAW DATA:', data);
+
+            // FIX: Handle different data structures
+            let submissions = data.submissions;
+            if (!submissions) {
+                console.error('No submissions data received');
+                return;
+            }
+
+            // Convert to array if it's an object
+            if (!Array.isArray(submissions)) {
+                submissions = Object.entries(submissions).map(([playerId, submission]) => ({
+                    playerId,
+                    ...submission
+                }));
+            }
+
+            console.log('Processed submissions for voting:', submissions);
+
             const votingHTML = `
                 <div class="voting-prompt">${data.prompt || 'Who should be sacrificed?'}</div>
                 <div class="submissions-list">
-                    ${Object.entries(data.submissions).map(([pid, s]) => `
-                        <div class="submission-item" data-player-id="${pid}">
-                            <input type="radio" name="vote" value="${pid}" id="vote-${pid}">
-                            <label for="vote-${pid}">
-                                <div class="player-name-voting">${s.playerName}</div>
-                                <div class="submission-text">"${s.text}"</div>
-                                <div class="submission-details">using ${s.item}</div>
-                            </label>
-                            <div class="vote-count">Votes: <span id="votes-${pid}">0</span></div>
-                        </div>
-                    `).join('')}
+                    ${submissions.map((submission, index) => {
+                // FIX: Handle different data structures safely
+                const playerId = submission.playerId || submission.id || `player-${index}`;
+                const playerName = submission.playerName || submission.name || 'Unknown Player';
+                const text = submission.text || submission.action || 'No action submitted';
+                const item = submission.item || submission.playerItem || 'Unknown item';
+
+                return `
+                            <div class="submission-item" data-player-id="${playerId}">
+                                <input type="radio" name="vote" value="${playerId}" id="vote-${playerId}">
+                                <label for="vote-${playerId}">
+                                    <div class="player-name-voting">${playerName}</div>
+                                    <div class="submission-text">"${text}"</div>
+                                    <div class="submission-details">using ${item}</div>
+                                </label>
+                                <div class="vote-count">Votes: <span id="votes-${playerId}">0</span></div>
+                            </div>
+                        `;
+            }).join('')}
                 </div>
             `;
+
             DOM.votingContent().innerHTML = votingHTML;
 
             // Add click handlers for voting
@@ -152,16 +187,27 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
         // NEW: Update vote counts in real-time
         socket.on('vote-update', (data) => {
             console.log('Vote update:', data);
-            Object.entries(data.votes).forEach(([playerId, voteCount]) => {
-                const voteElement = document.getElementById(`votes-${playerId}`);
-                if (voteElement) {
-                    voteElement.textContent = voteCount;
-                }
-            });
+            if (data.votes) {
+                Object.entries(data.votes).forEach(([playerId, voteCount]) => {
+                    const voteElement = document.getElementById(`votes-${playerId}`);
+                    if (voteElement) {
+                        voteElement.textContent = voteCount;
+                    }
+                });
+            }
         });
 
-        socket.on('vote-confirmed', () => {
+        socket.on('vote-confirmed', (data) => {
+            console.log('Vote confirmed:', data);
             DOM.voteStatus().textContent = 'Vote recorded! Waiting for others...';
+
+            // FIX: Update the vote count immediately for the voted player
+            if (data.votedFor && data.currentVotes) {
+                const voteElement = document.getElementById(`votes-${data.votedFor}`);
+                if (voteElement) {
+                    voteElement.textContent = data.currentVotes[data.votedFor] || 0;
+                }
+            }
         });
 
         // NEW: Show voting results
@@ -195,6 +241,13 @@ export function initSocketHandlers(socket, uiManager, setPhase, playerIdRef, gam
                 </div>
             `;
             setPhase('result');
+        });
+
+        // NEW: Handle submission phase completion
+        socket.on('submission-phase-complete', (data) => {
+            console.log('Submission phase complete:', data);
+            // This should trigger the review screen
+            socket.emit('request-submissions-review');
         });
     }
 
