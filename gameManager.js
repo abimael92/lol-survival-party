@@ -53,7 +53,7 @@ function initGameManager(io) {
 
         socket.join(game.id);
 
-        socket.emit('player-joined', player, gameCode);
+        socket.emit('player-joined', { player, gameCode, gameState: game });
 
         safeEmit(game, io, 'game-state-update', game);
     }
@@ -68,10 +68,10 @@ function initGameManager(io) {
 
         console.log('handleSubmitAction: ', socket, ' and data: ', data);
 
-
         if (game && game.phase === 'submit') {
 
             const player = game.players.find(p => p.id === socket.id);
+
             if (!player) return;
 
             game.submissions[socket.id] = {
@@ -80,32 +80,62 @@ function initGameManager(io) {
                 playerName: player.name
             };
 
-            safeEmit(game, io, 'player-submitted', { submittedCount: Object.keys(game.submissions).length });
+            socket.emit('player-submitted', {
+                submittedCount: Object.keys(game.submissions).length,
+                confirmed: true
+            });
+
+            socket.to(game.id).emit('player-submitted', {
+                submittedCount: Object.keys(game.submissions).length,
+                confirmed: false
+            });
 
             if (Object.keys(game.submissions).length === game.players.filter(p => p.alive).length) {
 
                 clearTimeout(game.timer);
 
-                // FIX: Send all submissions to clients before showing resolution
+                game.phase = 'result';
+
                 safeEmit(game, io, 'all-submissions-received', {
                     submissions: Object.values(game.submissions)
                 });
 
-                setTimeout(() => {
+                console.log('All players submitted, showing submissions for 20 seconds');
+                game.timer = setTimeout(() => {
+                    console.log('20 seconds passed, showing story resolution');
                     phases.showStoryResolution(game);
-                }, 5000);
+                }, 20000);
             }
         }
     }
 
-    function handleSubmitVote(socket, votedPlayerId) {
+    function handleSubmitVote(socket, data) {
+
         const game = findGameBySocket(games, socket.id);
+
         if (game && game.phase === 'vote') {
+
+            const votedPlayerId = data.vote;
+
+            console.log('Received vote from', socket.id, 'for player:', votedPlayerId);
+
             game.votes[socket.id] = votedPlayerId;
             game.players.find(p => p.id === socket.id).voted = true;
-            safeEmit(game, io, 'vote-update', game.votes);
+
+            const voteCounts = {};
+            Object.values(game.votes).forEach(vote => {
+                voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+            });
+
+            console.log('Current vote counts:', voteCounts);
+
+            socket.emit('vote-confirmed');
+
+            safeEmit(game, io, 'vote-update', { votes: voteCounts });
+
             if (game.players.filter(p => p.alive).every(p => p.voted)) {
                 clearTimeout(game.timer);
+
                 phases.endVoting(game);
             }
         }

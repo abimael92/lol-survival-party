@@ -4,6 +4,10 @@ export function initGamePhases(uiManager, socket) {
     let currentPhase = 'waiting';
 
     function setPhase(phase) {
+
+        DOM.submitActionBtn().replaceWith(DOM.submitActionBtn().cloneNode(true));
+        DOM.submitVoteBtn().replaceWith(DOM.submitVoteBtn().cloneNode(true));
+
         currentPhase = phase;
         console.log('Game phase:', phase);
 
@@ -32,23 +36,40 @@ export function initGamePhases(uiManager, socket) {
 
             case 'submit':
                 uiManager.showScreen('submit');
+
                 DOM.actionInput().value = '';
                 DOM.submitActionBtn().disabled = false;
                 DOM.submissionStatus().textContent = '';
 
                 uiManager.startTimer(60, 'submit-time', () => {
                     const action = DOM.actionInput().value.trim();
+
                     if (action) {
                         socket.emit('submit-action', { action });
+
                         DOM.submissionStatus().textContent = 'Submitted!';
                         DOM.submitActionBtn().disabled = true;
                     } else {
-                        // Auto-submit default action
                         socket.emit('submit-action', { action: "I choose to do nothing." });
+
                         DOM.submissionStatus().textContent = 'Auto-submitted!';
                         DOM.submitActionBtn().disabled = true;
                     }
                 });
+
+                const submitHandler = () => {
+                    const action = DOM.actionInput().value.trim();
+                    if (action) {
+                        socket.emit('submit-action', { action });
+                        DOM.submissionStatus().textContent = 'Submitted!';
+                        DOM.submitActionBtn().disabled = true;
+                        DOM.submitActionBtn().removeEventListener('click', submitHandler);
+                    } else {
+                        alert('Please enter your action first!');
+                    }
+                };
+
+                DOM.submitActionBtn().addEventListener('click', submitHandler);
                 break;
 
             case 'review':
@@ -62,16 +83,34 @@ export function initGamePhases(uiManager, socket) {
 
             case 'vote':
                 uiManager.showScreen('vote');
+
                 DOM.voteStatus().textContent = '';
-                uiManager.startTimer(45, 'vote-time', () => {
-                    // Auto-vote for first option if no vote selected
+
+                const voteHandler = () => {
                     const selectedVote = document.querySelector('input[name="vote"]:checked');
+                    if (selectedVote) {
+                        socket.emit('submit-vote', { vote: selectedVote.value });
+                        DOM.voteStatus().textContent = 'Vote recorded! Waiting for others...';
+                        DOM.submitVoteBtn().disabled = true;
+                        DOM.submitVoteBtn().removeEventListener('click', voteHandler);
+                    } else {
+                        alert('Please select a player to vote for!');
+                    }
+                };
+
+                DOM.submitVoteBtn().addEventListener('click', voteHandler);
+
+                uiManager.startTimer(45, 'vote-time', () => {
+                    const selectedVote = document.querySelector('input[name="vote"]:checked');
+
                     if (!selectedVote) {
                         const firstVote = document.querySelector('input[name="vote"]');
+
                         if (firstVote) {
                             firstVote.checked = true;
                             socket.emit('submit-vote', { vote: firstVote.value });
                             DOM.voteStatus().textContent = 'Auto-voted!';
+                            DOM.submitVoteBtn().disabled = true;
                         }
                     }
                 });
@@ -79,9 +118,9 @@ export function initGamePhases(uiManager, socket) {
 
             case 'result':
                 uiManager.showScreen('result');
-                uiManager.startTimer(15, 'result-time', () => {
-                    // Next phase handled by server
-                });
+                // uiManager.startTimer(15, 'result-time', () => {
+                //     // Next phase handled by server
+                // });
                 break;
         }
     }
