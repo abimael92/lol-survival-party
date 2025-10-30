@@ -54,13 +54,13 @@ export function initUIManager() {
 
             // Create player name with "You" indicator
             const nameSpan = document.createElement('span');
-            nameSpan.textContent = p.name + (p.id === currentPlayerId ? ' (You) 🎮' : '');
+            nameSpan.textContent = p.name + (p.id === currentPlayerId ? ' (You) ' : '');
             li.appendChild(nameSpan);
 
             // Add host badge if this player is host
             if (p.id === gameState.host) {
                 const badge = document.createElement('span');
-                badge.textContent = ' 👑 HOST';
+                badge.textContent = ' HOST';
                 badge.className = 'host-badge';
                 badge.style.marginLeft = '10px';
                 badge.style.background = '#e94560';
