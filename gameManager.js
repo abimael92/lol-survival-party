@@ -9,7 +9,11 @@ function initGameManager(io) {
     const phases = initGamePhases(io, games);
 
     // --- Socket Handlers ---
-    function handleCreateGame(socket, playerName) {
+    function handleCreateGame(socket, data) {
+        console.log('Received data:', data);
+
+        const playerName = data.playerName;
+
         const gameCode = uuidv4().substring(0, 6).toUpperCase();
         const game = {
             id: gameCode,
@@ -26,17 +30,31 @@ function initGameManager(io) {
         games.set(gameCode, game);
 
         socket.join(game.id);
-        socket.emit('game-created', { gameCode: game.id, player: game.players[0] });
+
+        console.log(game.players[0]);
+
+
+        socket.emit('game-created', {
+            gameCode: game.id,
+            player: game.players[0]  // This should be the player object
+        });
+
         safeEmit(game, io, 'game-state-update', game);
     }
 
     function handleJoinGame(socket, { gameCode, playerName }) {
         const game = games.get(gameCode);
+
         if (!game) return socket.emit('error', 'Game not found!');
+
         const player = { id: socket.id, name: playerName, alive: true, voted: false };
+
         game.players.push(player);
+
         socket.join(game.id);
-        socket.emit('player-joined', player);
+
+        socket.emit('player-joined', player, gameCode);
+
         safeEmit(game, io, 'game-state-update', game);
     }
 
@@ -47,15 +65,35 @@ function initGameManager(io) {
 
     function handleSubmitAction(socket, data) {
         const game = findGameBySocket(games, socket.id);
+
+        console.log('handleSubmitAction: ', socket, ' and data: ', data);
+
+
         if (game && game.phase === 'submit') {
+
+            const player = game.players.find(p => p.id === socket.id);
+            if (!player) return;
+
             game.submissions[socket.id] = {
                 text: data.action,
-                item: game.players.find(p => p.id === socket.id).currentItem
+                item: game.players.find(p => p.id === socket.id).currentItem,
+                playerName: player.name
             };
+
             safeEmit(game, io, 'player-submitted', { submittedCount: Object.keys(game.submissions).length });
+
             if (Object.keys(game.submissions).length === game.players.filter(p => p.alive).length) {
+
                 clearTimeout(game.timer);
-                phases.showStoryResolution(game);
+
+                // FIX: Send all submissions to clients before showing resolution
+                safeEmit(game, io, 'all-submissions-received', {
+                    submissions: Object.values(game.submissions)
+                });
+
+                setTimeout(() => {
+                    phases.showStoryResolution(game);
+                }, 5000);
             }
         }
     }
