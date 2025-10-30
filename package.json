@@ -1,6 +1,6 @@
 {
     "name": "lol-survival-party",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "description": "A funny scary adventure game with friends",
     "main": "server.js",
     "scripts": {
