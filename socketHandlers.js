@@ -13,6 +13,10 @@ function initSocketHandlers(io) {
         socket.on('submit-action', data => gameManager.handleSubmitAction(socket, data));
         socket.on('submit-vote', votedPlayerId => gameManager.handleSubmitVote(socket, votedPlayerId));
         socket.on('disconnect', () => gameManager.handleDisconnect(socket));
+
+        socket.onAny((eventName, ...args) => {
+            console.log(`Socket event: ${eventName}`, args);
+        });
     });
 }
 
