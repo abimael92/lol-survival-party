@@ -41,7 +41,7 @@ export function initGamePhases(uiManager, socket) {
                 DOM.submitActionBtn().disabled = false;
                 DOM.submissionStatus().textContent = '';
 
-                uiManager.startTimer(60, 'submit-time', () => {
+                uiManager.startTimer(30, 'submit-time', () => {
                     const action = DOM.actionInput().value.trim();
 
                     if (action) {
