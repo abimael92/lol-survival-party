@@ -2,6 +2,7 @@
 
 const STORY_TEMPLATES = {
     VAMPIRE_MANSION: {
+<<<<<<< Updated upstream
         title: "Midnight at Crimson Manor",
         mood: "Gothic horror with comedic undertones",
         intro: (players) => `The moon hung like a pale skull in the sky as ${generatePlayerList(players)} found themselves standing before the wrought-iron gates of Crimson Manor. What began as a dare had somehow led to this moment—the old Count's estate, abandoned for centuries, or so they thought. A cold wind whispered through the dead roses as the gates creaked open on their own...`,
@@ -25,9 +26,15 @@ const STORY_TEMPLATES = {
             "A library where the books rearrange themselves"
         ],
         victoryCondition: "Survive until sunrise or find the hidden holy water font"
+=======
+        intro: "It was a perfectly normal day when {players} decided to go on an adventure together...",
+        scenario: "You find yourselves trapped in a vampire's mansion!",
+        crisis: "The vampire is getting hungry! How do you use your item to buy more time?",
+        items: ["rubber chicken", "whoopee cushion", "giant foam finger", "kazoo"]
+>>>>>>> Stashed changes
     },
-
     ZOMBIE_MALL: {
+<<<<<<< Updated upstream
         title: "Dawn of the Mall Walkers",
         mood: "Action-comedy with shopping chaos",
         intro: (players) => `What should have been a routine shopping trip for ${generatePlayerList(players)} turned into a nightmare when the emergency broadcast system crackled to life. 'REMAIN CALM. THE DEAD ARE WALKING. NO REFUNDS.' Now trapped in the Mega-Mall Magnifico, surrounded by the undead and endless sales racks...`,
@@ -103,6 +110,12 @@ const STORY_TEMPLATES = {
             "Skeletons that do the macarena"
         ],
         victoryCondition: "Make the ghost laugh sincerely or find the anti-pun amulet"
+=======
+        intro: "{players} were just minding their own business when suddenly, adventure found them!",
+        scenario: "You're being chased by a zombie horde through a shopping mall!",
+        crisis: "The zombies are closing in! How do you use your item to survive?",
+        items: ["tennis racket", "duct tape", "super soaker", "fidget spinner"]
+>>>>>>> Stashed changes
     }
 };
 
@@ -123,6 +136,7 @@ const NARRATIVE_TEMPLATES = {
     },
 
     resolutions: [
+<<<<<<< Updated upstream
         (actions, crisis, players) => {
             const leadPlayer = players[Math.floor(Math.random() * players.length)];
             return `In a moment of pure inspiration, ${leadPlayer.name} led the way as ${actions}. The crisis "${crisis}" was resolved in the most absurdly brilliant way possible, leaving everyone wondering if they were geniuses or just incredibly lucky.`;
@@ -130,9 +144,12 @@ const NARRATIVE_TEMPLATES = {
         (actions, crisis, players) => {
             return `Through sheer determination and questionable life choices, ${actions}. Against all odds, they turned "${crisis}" into a triumph of human (and possibly alien/pirate/undead) ingenuity.`;
         }
+=======
+        (actions, crisis) => `In a stunning display, ${actions}. Crisis: ${crisis} resolved absurdly!`
+>>>>>>> Stashed changes
     ],
-
     deaths: [
+<<<<<<< Updated upstream
         (playerName, submission, item, scenario) => {
             const deaths = {
                 VAMPIRE_MANSION: [
@@ -154,9 +171,12 @@ const NARRATIVE_TEMPLATES = {
             };
             return deaths[scenario][Math.floor(Math.random() * deaths[scenario].length)];
         }
+=======
+        (playerName, submission, item) => `${playerName} tried ${submission} with ${item} and failed.`
+>>>>>>> Stashed changes
     ],
-
     continuations: [
+<<<<<<< Updated upstream
         (remainingPlayers, sacrificedPlayer, scenario) => {
             const continuations = {
                 VAMPIRE_MANSION: `${sacrificedPlayer.name} became the Count's latest vintage. ${generatePlayerList(remainingPlayers)} exchanged nervous glances, wondering who would be next to join the wine cellar.`,
@@ -209,9 +229,16 @@ const NARRATIVE_TEMPLATES = {
             };
             return endings[scenario];
         }
+=======
+        (remainingPlayers, sacrificedPlayer) => `${sacrificedPlayer.name} was eliminated. ${remainingPlayers.map(p => p.name).join(', ')} continue!`
     ],
-
+    crises: ["A new threat emerges! How do you use your item to handle it?"],
+    endings: [
+        (winner) => `${winner.name} survived the absurd adventure and wins!`
+>>>>>>> Stashed changes
+    ],
     disconnects: [
+<<<<<<< Updated upstream
         (playerName, scenario) => {
             const disconnects = {
                 VAMPIRE_MANSION: `${playerName} suddenly vanished in a puff of logic. The Count sighed. 'Modern youth, no commitment to being properly terrified.'`,
@@ -234,6 +261,9 @@ const NARRATIVE_TEMPLATES = {
     teamworkMoments: [
         (players, action) => `In a beautiful moment of synchronization, ${generatePlayerList(players)} worked together to ${action}. It was almost like they knew what they were doing.`,
         (players, action) => `Through a series of gestures, confused looks, and one interpretive dance, ${generatePlayerList(players)} managed to ${action}. Teamwork makes the dream work!`
+=======
+        (playerName) => `${playerName} disconnected and is out of the game.`
+>>>>>>> Stashed changes
     ]
 };
 
@@ -246,6 +276,7 @@ function generatePlayerList(players) {
     return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`;
 }
 
+<<<<<<< Updated upstream
 function getRandomCharacterArc() {
     const arcs = Object.keys(NARRATIVE_TEMPLATES.characterArcs);
     return arcs[Math.floor(Math.random() * arcs.length)];
@@ -265,3 +296,6 @@ module.exports = {
     generateCharacterMoment,
     getRandomCharacterArc
 };
+=======
+module.exports = { STORY_TEMPLATES, NARRATIVE_TEMPLATES, stories, generatePlayerList };
+>>>>>>> Stashed changes
